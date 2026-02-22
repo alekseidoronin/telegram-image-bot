@@ -545,11 +545,34 @@ async def language_command(update, context):
 
 async def set_language_callback(update, context):
     query = update.callback_query
+    user_id = update.effective_user.id
+    
+    # "answer" to clear loading state in some clients
     await query.answer()
+    
+    # Extract language from callback data (e.g. setlang_ru -> ru)
     lang = query.data.split("_")[1]
+    
+    # 1. Update Session and Database
     context.user_data["lang"] = lang
-    await database.set_user_language(update.effective_user.id, lang)
+    await database.set_user_language(user_id, lang)
+    
+    # 2. Show confirmation message
     await query.edit_message_text(t("lang_changed", lang))
+    
+    # 3. Automatically send the main menu in the NEW language
+    is_admin = (user_id == 632600126)
+    text = ui.welcome_text(lang)
+    markup = mode_keyboard(lang, is_admin=is_admin)
+    
+    # Send as a NEW message so it's clear the state changed
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        reply_markup=markup,
+        parse_mode=ParseMode.HTML
+    )
+    return CHOOSE_MODE
 
 
 async def error_handler(update, context):
