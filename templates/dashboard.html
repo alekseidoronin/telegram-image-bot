@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>📊 Дашборд</h2>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Всего пользователей</h5>
+            <h2 class="text-primary">{{ stats.total_users }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Всего генераций</h5>
+            <h2 class="text-success">{{ stats.total_generations }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Общие затраты (API)</h5>
+            <h2 class="text-danger">${{ "%.2f"|format(stats.total_cost) }}</h2>
+        </div>
+    </div>
+</div>
+{% endblock %}

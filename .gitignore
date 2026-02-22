@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+bot_data.pickle
+*.ogg
+*.tmp
+bot_database.db
+bot.log
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/

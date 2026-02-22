@@ -1,0 +1,44 @@
+# Как сделать так, чтобы я (AI) мог работать на сервере из Cursor
+
+## В чём суть
+Сейчас вы заходите на сервер по паролю. Я из Cursor могу запускать команды только на вашем Mac. Чтобы я мог выполнять команды на сервере, нужен вход по SSH-ключу: один раз добавить ключ с вашего Mac на сервер — дальше подключение будет без пароля, и я смогу подключаться сам.
+
+## Что сделать один раз
+
+1. Зайдите на сервер как обычно (в терминале: ssh debian@144.217.12.20, введите пароль).
+
+2. В терминале НА СЕРВЕРЕ (когда видите приглашение debian@vps-39eb0606:~$) выполните одну строку ниже (скопируйте целиком, вставьте, Enter):
+
+mkdir -p ~/.ssh && echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPxwtYdkgwYjyQYLbu7sV7j1b/K4BUXWg9iKYqcTT5F5 alekseidoronin@mac-vps' >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys && echo Done.
+
+3. Напишите мне здесь: «готово» или «сделал».
+
+После этого я смогу из Cursor запускать на сервере команды вида:
+  ssh debian@144.217.12.20 'ваша команда'
+и вам не нужно будет ничего вводить — буду работать в «вашем» терминале на сервере автоматически.
+
+
+СОЦСЕТИ:
+Telegram: https://t.me/NeuroAlexD
+TG Chanel: https://t.me/Doronin_Al
+Instagram: https://www.instagram.com/alexeidoronin/
+Mail: alexneurosolutions@gmail.com
+YouTube: https://studio.youtube.com/channel/UC_-jjMDPW3IpKGkmp7DVEcA/videos/upload?filter=%5B%5D&sort=%7B%22columnType%22%3A%22date%22%2C%22sortOrder%22%3A%22DESCENDING%22%7D
+Cases: https://telegra.ph/Moi-kejsy-kak-ya-prevrashchayu-haos-v-sistemu-11-27
+
+
+KIA AI
+3f0b079c4e3f424a14a4442c038ad38e
+
+API KEY:
+AssemblyAI API key
+[REMOVED]
+
+Gemini API key
+[REMOVED]
+
+OpenAI Platform
+[REMOVED]
+
+Grasai API Key
+[REMOVED]

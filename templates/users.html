@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>👥 Пользователи</h2>
+<div class="card mt-4">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Лимит</th>
+                <th>Блок</th>
+                <th>Активен</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.telegram_id }}</td>
+                <td>
+                    <strong>{{ user.full_name }}</strong><br>
+                    <small class="text-muted">@{{ user.username or '-' }}</small>
+                </td>
+                <td>
+                    <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
+                        <input type="number" name="limit" value="{{ user.daily_limit }}" style="width: 60px;">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">OK</button>
+                    </form>
+                </td>
+                <td>
+                    <span class="badge {% if user.is_blocked %}bg-danger{% else %}bg-success{% endif %}">
+                        {{ "Да" if user.is_blocked else "Нет" }}
+                    </span>
+                </td>
+                <td>{{ user.last_active[:16].replace('T', ' ') }}</td>
+                <td>
+                    <form action="/admin/users/{{ user.telegram_id }}/block" method="post" class="d-inline">
+                        <input type="hidden" name="blocked" value="{{ '0' if user.is_blocked else '1' }}">
+                        <button type="submit"
+                            class="btn btn-sm {% if user.is_blocked %}btn-success{% else %}btn-danger{% endif %}">
+                            {{ "Разблочить" if user.is_blocked else "Заблочить" }}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

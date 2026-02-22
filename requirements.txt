@@ -1,0 +1,11 @@
+python-telegram-bot==22.5
+google-genai
+Pillow
+python-dotenv
+assemblyai
+requests
+fastapi
+uvicorn
+aiosqlite
+jinja2
+python-multipart
