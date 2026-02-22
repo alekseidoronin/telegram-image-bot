@@ -61,7 +61,14 @@ async def users_list(request: Request, user=Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
     
-    users = await database.get_all_users()
+    users_raw = await database.get_all_users()
+    users = []
+    for u in users_raw:
+        u_dict = dict(u)
+        u_dict['total_count'] = await database.get_user_total_count(u['telegram_id'])
+        u_dict['remaining'] = max(0, u['daily_limit'] - u_dict['total_count'])
+        users.append(u_dict)
+        
     return templates.TemplateResponse("users.html", {
         "request": request, 
         "users": users,
@@ -73,9 +80,13 @@ async def user_detail(tid: int, request: Request, user=Depends(get_current_user)
     if not user:
         return RedirectResponse(url="/login")
     
-    user_data = await database.get_user(tid)
-    if not user_data:
+    user_data_raw = await database.get_user(tid)
+    if not user_data_raw:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    user_data = dict(user_data_raw)
+    user_data['total_count'] = await database.get_user_total_count(tid)
+    user_data['remaining'] = max(0, user_data['daily_limit'] - user_data['total_count'])
         
     generations = await database.get_user_generations(tid, limit=100)
     

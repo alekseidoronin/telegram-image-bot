@@ -8,6 +8,8 @@
             <tr>
                 <th>ID</th>
                 <th>Имя</th>
+                <th>Всего</th>
+                <th>Осталось</th>
                 <th>Лимит</th>
                 <th>Блок</th>
                 <th>Активен</th>
@@ -21,6 +23,12 @@
                 <td>
                     <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name }}</a></strong><br>
                     <small class="text-muted">@{{ user.username or '-' }}</small>
+                </td>
+                <td>{{ user.total_count }}</td>
+                <td>
+                    <span class="badge {% if user.remaining == 0 %}bg-danger{% else %}bg-info{% endif %}">
+                        {{ user.remaining }}
+                    </span>
                 </td>
                 <td>
                     <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
