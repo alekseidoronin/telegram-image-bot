@@ -68,13 +68,13 @@ async def start(update, context):
         is_admin = (user_dict.get("telegram_id") == 632600126)
     except (TypeError, ValueError, AttributeError):
         lang = "ru"
-        is_admin = (user.id == 632600126)
     
     logger.info("User upserted to database")
     
     context.user_data.clear()
     context.user_data["lang"] = lang
     text = ui.welcome_text(lang)
+    is_admin = await database.is_user_admin(user_id)
     markup = mode_keyboard(lang, is_admin=is_admin)
     if update.message:
         await update.message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
@@ -327,10 +327,11 @@ async def generate_handler(update, context):
 
     # Check limits
     user = await database.get_user(user_id)
+    is_admin = await database.is_user_admin(user_id)
     limit = user['daily_limit'] if user else DEFAULT_TOTAL_LIMIT
     usage = await database.get_user_total_count(user_id)
     
-    if usage >= limit:
+    if not is_admin and usage >= limit:
         await query.answer(t("limit_exceeded", lang), show_alert=True)
         return CHOOSE_MODE
 
@@ -499,7 +500,7 @@ async def help_command(update, context):
 
 async def admin_command(update, context):
     user_id = update.effective_user.id
-    if user_id != 632600126:
+    if not await database.is_user_admin(user_id):
         return
     
     stats = await database.get_stats()
@@ -559,7 +560,7 @@ async def set_language_callback(update, context):
     await query.edit_message_text(t("lang_changed", lang))
     
     # 3. Automatically send the main menu in the NEW language
-    is_admin = (user_id == 632600126)
+    is_admin = await database.is_user_admin(user_id)
     text = ui.welcome_text(lang)
     markup = mode_keyboard(lang, is_admin=is_admin)
     

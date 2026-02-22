@@ -47,6 +47,20 @@
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card text-white {% if user_data.is_admin_bool %}bg-dark{% else %}bg-secondary{% endif %} mb-3">
+            <div class="card-header">Роль</div>
+            <div class="card-body">
+                <h4 class="card-title">{{ "Админ" if user_data.is_admin_bool else "Пользователь" }}</h4>
+                <form action="/admin/users/{{ user_data.telegram_id }}/admin" method="post">
+                    <input type="hidden" name="admin" value="{{ '0' if user_data.is_admin_bool else '1' }}">
+                    <button type="submit" class="btn btn-sm btn-light w-100 mt-2">
+                        {{ "Снять права" if user_data.is_admin_bool else "Дать админа" }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
     <div class="col-md-6">
         <div class="card text-white bg-secondary mb-3">
             <div class="card-header">Последняя активность</div>

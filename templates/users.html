@@ -11,6 +11,7 @@
                 <th>Всего</th>
                 <th>Осталось</th>
                 <th>Лимит</th>
+                <th>Админ</th>
                 <th>Блок</th>
                 <th>Активен</th>
                 <th>Действия</th>
@@ -37,12 +38,24 @@
                     </form>
                 </td>
                 <td>
+                    <span class="badge {% if user.is_admin_bool %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ "Админ" if user.is_admin_bool else "Юзер" }}
+                    </span>
+                </td>
+                <td>
                     <span class="badge {% if user.is_blocked %}bg-danger{% else %}bg-success{% endif %}">
                         {{ "Да" if user.is_blocked else "Нет" }}
                     </span>
                 </td>
-                <td>{{ user.last_active[:16].replace('T', ' ') }}</td>
+                <td>{{ user.last_active[:16].replace('T', ' ') if user.last_active else '-' }}</td>
                 <td>
+                    <form action="/admin/users/{{ user.telegram_id }}/admin" method="post" class="d-inline">
+                        <input type="hidden" name="admin" value="{{ '0' if user.is_admin_bool else '1' }}">
+                        <button type="submit"
+                            class="btn btn-sm {% if user.is_admin_bool %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}">
+                            {{ "Разжаловать" if user.is_admin_bool else "Назначить админом" }}
+                        </button>
+                    </form>
                     <form action="/admin/users/{{ user.telegram_id }}/block" method="post" class="d-inline">
                         <input type="hidden" name="blocked" value="{{ '0' if user.is_blocked else '1' }}">
                         <button type="submit"

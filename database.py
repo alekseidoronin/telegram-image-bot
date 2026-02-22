@@ -22,11 +22,19 @@ async def init_db():
                 full_name TEXT,
                 daily_limit INTEGER DEFAULT 7,
                 is_blocked INTEGER DEFAULT 0,
+                is_admin INTEGER DEFAULT 0,
                 language TEXT DEFAULT 'ru',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 last_active TEXT
             )
         ''')
+        
+        # Migration: add is_admin column if it doesn't exist
+        try:
+            await db.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
+            await db.commit()
+        except:
+            pass # Already exists
         
         # Generations table
         await db.execute('''
@@ -112,6 +120,14 @@ async def is_user_blocked(telegram_id):
     """Check if user is blocked."""
     user = await get_user(telegram_id)
     return user['is_blocked'] == 1 if user else False
+
+async def is_user_admin(telegram_id):
+    """Check if user is admin."""
+    # Hardcoded superadmin
+    if telegram_id == 632600126:
+        return True
+    user = await get_user(telegram_id)
+    return user['is_admin'] == 1 if user else False
 
 async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, success=1):
     """Log a generation request and return its cost."""
@@ -211,4 +227,13 @@ async def set_user_limit(telegram_id, limit):
 async def set_user_block(telegram_id, is_blocked):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('UPDATE users SET is_blocked = ? WHERE telegram_id = ?', (1 if is_blocked else 0, telegram_id))
+        await db.commit()
+
+async def set_user_admin_status(telegram_id, is_admin):
+    """Update admin status for a user."""
+    # Prevent removing superadmin status
+    if telegram_id == 632600126 and not is_admin:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('UPDATE users SET is_admin = ? WHERE telegram_id = ?', (1 if is_admin else 0, telegram_id))
         await db.commit()

@@ -67,6 +67,7 @@ async def users_list(request: Request, user=Depends(get_current_user)):
         u_dict = dict(u)
         u_dict['total_count'] = await database.get_user_total_count(u['telegram_id'])
         u_dict['remaining'] = max(0, u['daily_limit'] - u_dict['total_count'])
+        u_dict['is_admin_bool'] = await database.is_user_admin(u['telegram_id'])
         users.append(u_dict)
         
     return templates.TemplateResponse("users.html", {
@@ -87,6 +88,7 @@ async def user_detail(tid: int, request: Request, user=Depends(get_current_user)
     user_data = dict(user_data_raw)
     user_data['total_count'] = await database.get_user_total_count(tid)
     user_data['remaining'] = max(0, user_data['daily_limit'] - user_data['total_count'])
+    user_data['is_admin_bool'] = await database.is_user_admin(tid)
         
     generations = await database.get_user_generations(tid, limit=100)
     
@@ -107,6 +109,12 @@ async def update_limit(tid: int, limit: int = Form(...), user=Depends(get_curren
 async def block_user(tid: int, blocked: bool = Form(...), user=Depends(get_current_user)):
     if not user: return RedirectResponse(url="/login")
     await database.set_user_block(tid, blocked)
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/admin/users/{tid}/admin")
+async def toggle_admin(tid: int, admin: bool = Form(...), user=Depends(get_current_user)):
+    if not user: return RedirectResponse(url="/login")
+    await database.set_user_admin_status(tid, admin)
     return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.get("/admin/pricing", response_class=HTMLResponse)
