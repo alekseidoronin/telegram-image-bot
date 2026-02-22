@@ -60,27 +60,50 @@ async def start(update, context):
     user = update.effective_user
     await database.upsert_user(user.id, user.username, user.full_name)
     user_record = await database.get_user(user.id)
-    lang = user_record["language"] if user_record else "ru"
+    # Safer access to avoid IndexError if row_factory behavior is inconsistent
+    try:
+        user_dict = dict(user_record) if user_record else {}
+        lang = user_dict.get("language", "ru")
+        is_admin = (user_dict.get("telegram_id") == 632600126)
+    except (TypeError, ValueError, AttributeError):
+        lang = "ru"
+        is_admin = (user.id == 632600126)
+    
     logger.info("User upserted to database")
     
     context.user_data.clear()
     context.user_data["lang"] = lang
     text = ui.welcome_text(lang)
+    markup = mode_keyboard(lang, is_admin=is_admin)
     if update.message:
-        await update.message.reply_text(text, reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
+        await update.message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
     elif update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text, reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
+        await update.callback_query.edit_message_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
     return CHOOSE_MODE
 
 
 async def go_menu(update, context):
-    lang = context.user_data.get("lang", "ru")
     query = update.callback_query
+    user_id = query.from_user.id
+    user_record = await database.get_user(user_id)
+    
+    try:
+        user_dict = dict(user_record) if user_record else {}
+        lang = user_dict.get("language", context.user_data.get("lang", "ru"))
+        is_admin = (user_id == 632600126)
+    except (TypeError, ValueError, AttributeError):
+        lang = context.user_data.get("lang", "ru")
+        is_admin = (user_id == 632600126)
+
     await query.answer()
     context.user_data.clear()
     context.user_data["lang"] = lang
-    await query.edit_message_text(ui.welcome_text(lang), reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
+    await query.edit_message_text(
+        ui.welcome_text(lang),
+        reply_markup=mode_keyboard(lang, is_admin=is_admin),
+        parse_mode=ParseMode.HTML
+    )
     return CHOOSE_MODE
 
 

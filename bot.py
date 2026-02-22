@@ -108,6 +108,8 @@ async def run_bot():
                     mode_chosen,
                     pattern="^(" + MODE_TXT2IMG + "|" + MODE_IMG2IMG + "|" + MODE_MULTI + ")$",
                 ),
+                CallbackQueryHandler(language_command, pattern="^btn_language$"),
+                CallbackQueryHandler(admin_command, pattern="^btn_admin$"),
                 menu_handler,
             ],
             CHOOSE_RATIO: [
@@ -151,6 +153,9 @@ async def run_bot():
         fallbacks=[
             CommandHandler("cancel", cancel),
             CommandHandler("start", start),
+            CommandHandler("help", help_command),
+            CommandHandler("admin", admin_command),
+            CommandHandler("language", language_command),
         ],
         allow_reentry=True,
         per_message=False,
@@ -158,9 +163,6 @@ async def run_bot():
 
     application.add_handler(MessageHandler(filters.ALL, global_trace), group=-1)
     application.add_handler(conv_handler)
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("admin", admin_command))
-    application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CallbackQueryHandler(set_language_callback, pattern="^setlang_"))
     application.add_error_handler(error_handler)
 

@@ -23,12 +23,16 @@ from config import (
 )
 from i18n import t
 
-def mode_keyboard(lang="ru"):
-    return InlineKeyboardMarkup([
+def mode_keyboard(lang="ru", is_admin=False):
+    keyboard = [
         [InlineKeyboardButton(t("btn_txt2img", lang), callback_data=MODE_TXT2IMG)],
         [InlineKeyboardButton(t("btn_img2img", lang), callback_data=MODE_IMG2IMG)],
         [InlineKeyboardButton(t("btn_multi", lang), callback_data=MODE_MULTI)],
-    ])
+        [InlineKeyboardButton(t("btn_language", lang), callback_data="btn_language")],
+    ]
+    if is_admin:
+        keyboard.append([InlineKeyboardButton(t("btn_admin", lang), callback_data="btn_admin")])
+    return InlineKeyboardMarkup(keyboard)
 
 
 def ratio_keyboard(lang="ru"):
