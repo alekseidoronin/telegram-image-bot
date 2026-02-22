@@ -21,39 +21,32 @@ from config import (
     RATIO_OPTIONS,
     RATIO_PREFIX,
 )
+from i18n import t
 
-
-def mode_keyboard():
+def mode_keyboard(lang="ru"):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(
-            "🎨 Текст -> Изображение", callback_data=MODE_TXT2IMG,
-        )],
-        [InlineKeyboardButton(
-            "✏️ Фото -> Фото (редактирование)", callback_data=MODE_IMG2IMG,
-        )],
-        [InlineKeyboardButton(
-            "🧩 Мульти-фото (микс/коллаж)", callback_data=MODE_MULTI,
-        )],
+        [InlineKeyboardButton(t("btn_txt2img", lang), callback_data=MODE_TXT2IMG)],
+        [InlineKeyboardButton(t("btn_img2img", lang), callback_data=MODE_IMG2IMG)],
+        [InlineKeyboardButton(t("btn_multi", lang), callback_data=MODE_MULTI)],
     ])
 
 
-def ratio_keyboard():
-    from config import RATIO_LABELS
+def ratio_keyboard(lang="ru"):
     rows = []
     row = []
     for r in RATIO_OPTIONS:
-        label = RATIO_LABELS.get(r, r)
+        label = t("ratio_" + r, lang)
         row.append(InlineKeyboardButton(label, callback_data=RATIO_PREFIX + r))
         if len(row) == 2:
             rows.append(row)
             row = []
     if row:
         rows.append(row)
-    rows.append([InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)])
+    rows.append([InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)])
     return InlineKeyboardMarkup(rows)
 
 
-def quality_keyboard():
+def quality_keyboard(lang="ru"):
     buttons = []
     for q in QUALITY_OPTIONS:
         icon = QUALITY_ICONS.get(q, "")
@@ -62,44 +55,50 @@ def quality_keyboard():
         )
     return InlineKeyboardMarkup([
         buttons,
-        [InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
     ])
 
 
-def search_keyboard():
+def search_keyboard(lang="ru"):
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🔍 Да, включить", callback_data=ACTION_SEARCH_ON),
-            InlineKeyboardButton("❌ Нет", callback_data=ACTION_SEARCH_OFF),
+            InlineKeyboardButton(t("btn_search_on", lang), callback_data=ACTION_SEARCH_ON),
+            InlineKeyboardButton(t("btn_search_off", lang), callback_data=ACTION_SEARCH_OFF),
         ],
-        [InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
     ])
 
 
-def prompt_keyboard():
+def prompt_keyboard(lang="ru"):
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("✨ Улучшить промпт", callback_data=ACTION_ENHANCE),
-            InlineKeyboardButton("🚀 Генерировать", callback_data=ACTION_GENERATE),
+            InlineKeyboardButton(t("btn_enhance", lang), callback_data=ACTION_ENHANCE),
+            InlineKeyboardButton(t("btn_generate", lang), callback_data=ACTION_GENERATE),
         ],
-        [InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
     ])
 
 
-def generate_only_keyboard():
+def generate_only_keyboard(lang="ru"):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🚀 Генерировать", callback_data=ACTION_GENERATE)],
-        [InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)],
+        [InlineKeyboardButton(t("btn_generate", lang), callback_data=ACTION_GENERATE)],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
     ])
 
 
-def done_photos_keyboard(count):
+def done_photos_keyboard(count, lang="ru"):
     mx = MAX_REFERENCE_IMAGES
     if count < 2:
-        label = "📸 Загружено: " + str(count) + " (мин. 2)"
+        label = t("btn_done_photos_need", lang, count=count)
     else:
-        label = "✅ Готово (" + str(count) + "/" + str(mx) + " фото)"
+        label = t("btn_done_photos_ok", lang, count=count, mx=mx)
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(label, callback_data=ACTION_DONE_PHOTOS)],
-        [InlineKeyboardButton("↩️ Главное меню", callback_data=ACTION_MENU)],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
+    ])
+
+def language_keyboard(lang="ru"):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🇷🇺 Русский", callback_data="setlang_ru")],
+        [InlineKeyboardButton("🇬🇧 English", callback_data="setlang_en")],
     ])

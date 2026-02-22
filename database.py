@@ -22,6 +22,7 @@ async def init_db():
                 full_name TEXT,
                 daily_limit INTEGER DEFAULT 10,
                 is_blocked INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'ru',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 last_active TEXT
             )
@@ -98,6 +99,15 @@ async def get_user(telegram_id):
         async with db.execute('SELECT * FROM users WHERE telegram_id = ?', (telegram_id,)) as cursor:
             return await cursor.fetchone()
 
+async def set_user_language(telegram_id, language):
+    """Update user language."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''
+            UPDATE users SET language = ?
+            WHERE telegram_id = ?
+        ''', (language, telegram_id))
+        await db.commit()
+
 async def is_user_blocked(telegram_id):
     """Check if user is blocked."""
     user = await get_user(telegram_id)
@@ -120,12 +130,6 @@ async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, succe
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (telegram_id, mode, quality, aspect_ratio, prompt, cost, success))
         
-        if success == 1:
-            await db.execute('''
-                UPDATE users SET daily_limit = daily_limit - 1 
-                WHERE telegram_id = ? AND daily_limit > 0
-            ''', (telegram_id,))
-            
         await db.commit()
         return cost
 

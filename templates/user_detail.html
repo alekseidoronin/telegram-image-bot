@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="/admin/users" class="btn btn-outline-secondary">&larr; Вернуться к списку</a>
+</div>
+
+<h2>Детализация пользователя: {{ user_data.full_name }}</h2>
+<p class="text-muted">ID: {{ user_data.telegram_id }} | @{{ user_data.username or '-' }}</p>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-header">Лимит на сегодня</div>
+            <div class="card-body">
+                <h4 class="card-title">{{ user_data.daily_limit }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-header">Статус блокировки</div>
+            <div class="card-body">
+                <h4 class="card-title">{{ "Заблокирован" if user_data.is_blocked else "Активен" }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-white bg-secondary mb-3">
+            <div class="card-header">Последняя активность</div>
+            <div class="card-body">
+                <h4 class="card-title">{{ user_data.last_active[:16].replace('T', ' ') if user_data.last_active else
+                    'Нет данных' }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3>История генераций / Транзакции</h3>
+<div class="card mt-3">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Дата / Время</th>
+                    <th>Режим</th>
+                    <th>Формат / Качество</th>
+                    <th>Промпт</th>
+                    <th>Статус</th>
+                    <th>Стоимость ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gen in generations %}
+                <tr>
+                    <td style="white-space: nowrap;">{{ gen.created_at[:16].replace('T', ' ') }}</td>
+                    <td><span class="badge bg-secondary">{{ gen.mode }}</span></td>
+                    <td>{{ gen.aspect_ratio or '-' }} | {{ gen.quality }}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                        title="{{ gen.prompt }}">
+                        {{ gen.prompt or '-' }}
+                    </td>
+                    <td>
+                        <span class="badge {% if gen.success %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ "Успех" if gen.success else "Ошибка" }}
+                        </span>
+                    </td>
+                    <td><strong>{{ "%.3f"|format(gen.api_cost|float) }}</strong></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">Нет генераций</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

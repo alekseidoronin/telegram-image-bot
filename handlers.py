@@ -45,7 +45,9 @@ from keyboards import (
     prompt_keyboard,
     generate_only_keyboard,
     done_photos_keyboard,
+    language_keyboard,
 )
+from i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -57,23 +59,28 @@ async def start(update, context):
     logger.info("Start command received from user %s", update.effective_user.id)
     user = update.effective_user
     await database.upsert_user(user.id, user.username, user.full_name)
+    user_record = await database.get_user(user.id)
+    lang = user_record["language"] if user_record else "ru"
     logger.info("User upserted to database")
     
     context.user_data.clear()
-    text = ui.welcome_text()
+    context.user_data["lang"] = lang
+    text = ui.welcome_text(lang)
     if update.message:
-        await update.message.reply_text(text, reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
+        await update.message.reply_text(text, reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
     elif update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text, reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
+        await update.callback_query.edit_message_text(text, reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
     return CHOOSE_MODE
 
 
 async def go_menu(update, context):
+    lang = context.user_data.get("lang", "ru")
     query = update.callback_query
     await query.answer()
     context.user_data.clear()
-    await query.edit_message_text(ui.welcome_text(), reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
+    context.user_data["lang"] = lang
+    await query.edit_message_text(ui.welcome_text(lang), reply_markup=mode_keyboard(lang), parse_mode=ParseMode.HTML)
     return CHOOSE_MODE
 
 
@@ -82,9 +89,10 @@ async def mode_chosen(update, context):
     await query.answer()
     mode = query.data
     context.user_data["mode"] = mode
+    lang = context.user_data.get("lang", "ru")
     await query.edit_message_text(
         ui.ratio_header(context),
-        reply_markup=ratio_keyboard(),
+        reply_markup=ratio_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CHOOSE_RATIO
@@ -95,9 +103,10 @@ async def ratio_chosen(update, context):
     await query.answer()
     ratio = query.data.replace(RATIO_PREFIX, "")
     context.user_data["aspect_ratio"] = ratio
+    lang = context.user_data.get("lang", "ru")
     await query.edit_message_text(
         ui.quality_header(context),
-        reply_markup=quality_keyboard(),
+        reply_markup=quality_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CHOOSE_QUALITY
@@ -108,9 +117,10 @@ async def quality_chosen(update, context):
     await query.answer()
     quality = query.data.replace(QUALITY_PREFIX, "")
     context.user_data["quality"] = quality
+    lang = context.user_data.get("lang", "ru")
     await query.edit_message_text(
         ui.search_header(context),
-        reply_markup=search_keyboard(),
+        reply_markup=search_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CHOOSE_SEARCH
@@ -121,6 +131,7 @@ async def search_chosen(update, context):
     await query.answer()
     context.user_data["search"] = (query.data == ACTION_SEARCH_ON)
     mode = context.user_data.get("mode", MODE_TXT2IMG)
+    lang = context.user_data.get("lang", "ru")
 
     if mode == MODE_IMG2IMG:
         await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
@@ -130,8 +141,8 @@ async def search_chosen(update, context):
         context.user_data["multi_images"] = []
         await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
         await query.message.reply_text(
-            ui.photo_count_text(0),
-            reply_markup=done_photos_keyboard(0),
+            ui.photo_count_text(0, lang),
+            reply_markup=done_photos_keyboard(0, lang),
             parse_mode=ParseMode.HTML
         )
         return AWAITING_MULTI_PHOTOS
@@ -151,20 +162,24 @@ async def photo_received(update, context):
     await file.download_to_memory(buf)
     buf.seek(0)
     context.user_data["input_image"] = buf.getvalue()
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
         "✅ Фото загружено\n\n"
-        "✍️ Напиши или 🎤 надиктуй что нужно изменить."
+        "✍️ Напиши или 🎤 надиктуй что нужно изменить." if lang == "ru" else
+        "✅ Photo uploaded\n\n"
+        "✍️ Write or 🎤 dictate what to change."
     )
     return AWAITING_PROMPT
 
 
 async def multi_photo_received(update, context):
     images = context.user_data.setdefault("multi_images", [])
+    lang = context.user_data.get("lang", "ru")
 
     if len(images) >= MAX_REFERENCE_IMAGES:
         await update.message.reply_text(
-            ui.photo_count_text(len(images)),
-            reply_markup=done_photos_keyboard(len(images)),
+            ui.photo_count_text(len(images), lang),
+            reply_markup=done_photos_keyboard(len(images), lang),
         )
         return AWAITING_MULTI_PHOTOS
 
@@ -177,8 +192,8 @@ async def multi_photo_received(update, context):
 
     count = len(images)
     await update.message.reply_text(
-        ui.photo_count_text(count),
-        reply_markup=done_photos_keyboard(count),
+        ui.photo_count_text(count, lang),
+        reply_markup=done_photos_keyboard(count, lang),
     )
     return AWAITING_MULTI_PHOTOS
 
@@ -186,15 +201,22 @@ async def multi_photo_received(update, context):
 async def multi_photos_done(update, context):
     query = update.callback_query
     images = context.user_data.get("multi_images", [])
+    lang = context.user_data.get("lang", "ru")
     if len(images) < 2:
-        await query.answer("⚠️ Нужно минимум 2 фото!", show_alert=True)
+        msg = "⚠️ Нужно минимум 2 фото!" if lang == "ru" else "⚠️ Need at least 2 photos!"
+        await query.answer(msg, show_alert=True)
         return AWAITING_MULTI_PHOTOS
     await query.answer()
-    await query.edit_message_text(
+    text = (
         "✅ " + str(len(images)) + " фото загружено\n\n"
         "✍️ Напиши или 🎤 надиктуй что сделать с фото\n"
         "(объединить, микс, коллаж, наложить...)"
+    ) if lang == "ru" else (
+        "✅ " + str(len(images)) + " photos uploaded\n\n"
+        "✍️ Write or 🎤 dictate what to do with them\n"
+        "(blend, mix, collage, overlay...)"
     )
+    await query.edit_message_text(text)
     return AWAITING_PROMPT
 
 
@@ -204,23 +226,26 @@ async def multi_photos_done(update, context):
 async def prompt_received(update, context):
     prompt = update.message.text
     context.user_data["prompt"] = prompt
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
         ui.prompt_confirm_text(prompt, context),
-        reply_markup=prompt_keyboard(),
+        reply_markup=prompt_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
 
 
 async def voice_received(update, context):
+    lang = context.user_data.get("lang", "ru")
     if not ASSEMBLYAI_KEY:
         await update.message.reply_text(
-            ui.error_text("Голосовые сообщения не настроены. Отправь текстом."),
+            ui.error_text("Голосовые сообщения не настроены. Отправь текстом." if lang == "ru" else "Voice messages are not configured. Send text.", lang),
             parse_mode=ParseMode.HTML
         )
         return AWAITING_PROMPT
 
-    status_msg = await update.message.reply_text("🎤 Распознаю голос...")
+    status_txt = "🎤 Распознаю голос..." if lang == "ru" else "🎤 Recognizing voice..."
+    status_msg = await update.message.reply_text(status_txt)
 
     voice = update.message.voice
     file = await voice.get_file()
@@ -232,7 +257,7 @@ async def voice_received(update, context):
 
     if not text:
         await status_msg.edit_text(
-            ui.error_text("Не удалось распознать. Попробуй ещё раз или отправь текстом."),
+            ui.error_text(t("voice_error", lang), lang),
             parse_mode=ParseMode.HTML
         )
         return AWAITING_PROMPT
@@ -254,12 +279,13 @@ async def enhance_prompt_handler(update, context):
     query = update.callback_query
     await query.answer()
     original = context.user_data.get("prompt", "")
-    await query.edit_message_text("✨ Улучшаю промпт...")
+    lang = context.user_data.get("lang", "ru")
+    await query.edit_message_text(t("enhancing_prompt", lang))
     enhanced = await image_service.enhance_prompt(GEMINI_API_KEY, original)
     context.user_data["prompt"] = enhanced
     await query.edit_message_text(
-        ui.enhanced_prompt_text(enhanced),
-        reply_markup=generate_only_keyboard(),
+        ui.enhanced_prompt_text(enhanced, lang),
+        reply_markup=generate_only_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
@@ -268,10 +294,11 @@ async def enhance_prompt_handler(update, context):
 async def generate_handler(update, context):
     query = update.callback_query
     user_id = query.from_user.id
+    lang = context.user_data.get("lang", "ru")
     
     # Check block status
     if await database.is_user_blocked(user_id):
-        await query.answer("Вы заблокированы.", show_alert=True)
+        await query.answer(t("blocked", lang), show_alert=True)
         return ConversationHandler.END
 
     # Check limits
@@ -280,7 +307,7 @@ async def generate_handler(update, context):
     usage = await database.get_user_today_count(user_id)
     
     if usage >= limit:
-        await query.answer(f"Лимит исчерпан ({limit}/{limit}). Попробуй завтра!", show_alert=True)
+        await query.answer(t("limit_exceeded", lang), show_alert=True)
         return CHOOSE_MODE
 
     await query.answer()
@@ -293,14 +320,14 @@ async def generate_handler(update, context):
 
     # Immediately remove buttons and show starting message
     try:
-        await query.edit_message_text("⏳ Запускаю генерацию...")
+        await query.edit_message_text(t("start_generating", lang))
     except Exception:
         pass
 
     # Start progress bar (does not block threads)
     stop_event = asyncio.Event()
     progress_task = asyncio.create_task(
-        ui.run_progress_bar(query.message, quality, stop_event)
+        ui.run_progress_bar(query.message, quality, stop_event, lang)
     )
 
     # Generate
@@ -330,8 +357,13 @@ async def generate_handler(update, context):
     caption = ui.settings_line(context)
 
     # Try to update progress message to "Done"
+    remaining = limit - usage - 1
+    if remaining < 0:
+        remaining = 0
+    
+    done_text = t("msg_done", lang) + f" ({remaining}/{limit})"
     try:
-        await query.message.edit_text("✅ Готово!")
+        await query.message.edit_text(done_text)
     except Exception:
         pass
 
@@ -350,14 +382,15 @@ async def generate_handler(update, context):
                 )
             except Exception:
                 bio.seek(0)
+                compressed_txt = " (compression safe)" if lang == "en" else " (файл — Telegram сжимает фото)"
                 await context.bot.send_document(
                     chat_id=chat_id, document=bio,
-                    caption=caption + " (файл — Telegram сжимает фото)",
+                    caption=caption + compressed_txt,
                 )
     else:
         await context.bot.send_message(
             chat_id=chat_id,
-            text=ui.error_text("Не удалось сгенерировать. Попробуй другой промпт."),
+            text=ui.error_text(t("generation_error", lang), lang),
             parse_mode=ParseMode.HTML
         )
 
@@ -370,8 +403,8 @@ async def generate_handler(update, context):
     # But we want to allow user to generate again with same settings OR choose new mode
     await context.bot.send_message(
         chat_id=chat_id,
-        text="Готово! Что дальше?",
-        reply_markup=mode_keyboard(),
+        text=t("msg_what_next", lang),
+        reply_markup=mode_keyboard(lang),
     )
     context.user_data.clear()
     return CHOOSE_MODE
@@ -382,33 +415,33 @@ async def generate_handler(update, context):
 
 async def photo_in_prompt_state(update, context):
     mode = context.user_data.get("mode", "")
+    lang = context.user_data.get("lang", "ru")
     if mode == MODE_TXT2IMG:
         await update.message.reply_text(
-            ui.error_text(
-                "Режим «Текст -> Изображение» — жду текст, а не фото.\n"
-                "Для редактирования фото нажми /start и выбери «Фото -> Фото»."
-            ),
+            ui.error_text(t("expected_text", lang), lang),
             parse_mode=ParseMode.HTML
         )
     else:
         await update.message.reply_text(
-            ui.error_text("Фото уже загружено. Отправь текст или голосовое."),
+            ui.error_text(t("photo_already_loaded", lang), lang),
             parse_mode=ParseMode.HTML
         )
     return AWAITING_PROMPT
 
 
 async def text_in_photo_state(update, context):
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
-        ui.error_text("Жду фотографию. Отправь фото или нажми /start для другого режима."),
+        ui.error_text(t("expected_photo", lang), lang),
         parse_mode=ParseMode.HTML
     )
     return AWAITING_PHOTO
 
 
 async def voice_in_photo_state(update, context):
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
-        ui.error_text("Жду фотографию, а не голосовое. Отправь фото."),
+        ui.error_text(t("expected_photo_not_voice", lang), lang),
         parse_mode=ParseMode.HTML
     )
     return AWAITING_PHOTO
@@ -416,9 +449,10 @@ async def voice_in_photo_state(update, context):
 
 async def text_in_multi_photos(update, context):
     count = len(context.user_data.get("multi_images", []))
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
-        ui.error_text("Жду фотографии. Отправь фото или нажми Готово."),
-        reply_markup=done_photos_keyboard(count),
+        ui.error_text(t("expected_images_not_text", lang), lang),
+        reply_markup=done_photos_keyboard(count, lang),
         parse_mode=ParseMode.HTML
     )
     return AWAITING_MULTI_PHOTOS
@@ -426,9 +460,10 @@ async def text_in_multi_photos(update, context):
 
 async def voice_in_multi_photos(update, context):
     count = len(context.user_data.get("multi_images", []))
+    lang = context.user_data.get("lang", "ru")
     await update.message.reply_text(
-        ui.error_text("Жду фотографии, а не голосовое. Отправь фото."),
-        reply_markup=done_photos_keyboard(count),
+        ui.error_text(t("expected_images_not_voice", lang), lang),
+        reply_markup=done_photos_keyboard(count, lang),
         parse_mode=ParseMode.HTML
     )
     return AWAITING_MULTI_PHOTOS
@@ -438,29 +473,8 @@ async def voice_in_multi_photos(update, context):
 
 
 async def help_command(update, context):
-    text = (
-        "🎨 Nano Banana Pro\n"
-        "Генерация изображений на базе AI\n"
-        "\n"
-        "📌 Команды:\n"
-        "/start — главное меню\n"
-        "/help — справка\n"
-        "/cancel — отмена\n"
-        "\n"
-        "🎯 Режимы:\n"
-        "🎨 Текст -> Изображение\n"
-        "✏️ Фото -> Фото (редактирование)\n"
-        "🧩 Мульти-фото (микс/коллаж)\n"
-        "\n"
-        "⚙️ Настройки:\n"
-        "📐 Соотношение: 1:1, 16:9, 9:16 и др.\n"
-        "🎞 Качество: 1K, 2K, 4K\n"
-        "🔍 Google Search — реальные данные из интернета\n"
-        "✨ Улучшение промпта — AI допишет детали\n"
-        "\n"
-        "🎤 Можно отправлять голосовые вместо текста"
-    )
-    await update.message.reply_text(text)
+    lang = context.user_data.get("lang", "ru")
+    await update.message.reply_text(t("help_msg", lang))
 
 
 async def admin_command(update, context):
@@ -473,27 +487,39 @@ async def admin_command(update, context):
     total_gens = stats.get('total_generations', 0)
     total_cost = stats.get('total_cost', 0.0)
     
-    text = (
-        "👑 <b>Панель администратора</b>\n\n"
-        f"👥 Всего пользователей: {total_users}\n"
-        f"🖼 Успешных генераций: {total_gens}\n"
-        f"💵 Затраты API: ${total_cost:.3f}\n\n"
-        "<i>Детальная информация по пользователям доступна в веб-панели.</i>"
-    )
+    lang = context.user_data.get("lang", "ru")
+    text = t("admin_panel", lang, total_users=total_users, total_gens=total_gens, total_cost=total_cost)
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
 async def cancel(update, context):
+    lang = context.user_data.get("lang", "ru")
     context.user_data.clear()
+    context.user_data["lang"] = lang
     await update.message.reply_text(
-        "❌ Отменено\n\nВыбери режим:",
-        reply_markup=mode_keyboard(),
+        t("cancel_msg", lang) + "\n\n" + ("Выбери режим:" if lang == "ru" else "Choose a mode:"),
+        reply_markup=mode_keyboard(lang),
     )
     return CHOOSE_MODE
 
 
+async def language_command(update, context):
+    lang = context.user_data.get("lang", "ru")
+    await update.message.reply_text(t("select_lang", lang), reply_markup=language_keyboard(lang))
+
+
+async def set_language_callback(update, context):
+    query = update.callback_query
+    await query.answer()
+    lang = query.data.split("_")[1]
+    context.user_data["lang"] = lang
+    await database.set_user_language(update.effective_user.id, lang)
+    await query.edit_message_text(t("lang_changed", lang))
+
+
 async def error_handler(update, context):
     logger.error(msg="Exception while handling update:", exc_info=context.error)
+
 
 async def global_trace(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("RECEIVED UPDATE: %s", update.to_dict())

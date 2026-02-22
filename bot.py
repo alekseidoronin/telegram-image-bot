@@ -62,6 +62,8 @@ from handlers import (
     cancel,
     error_handler,
     admin_command,
+    language_command,
+    set_language_callback,
 )
 
 logging.basicConfig(
@@ -74,11 +76,11 @@ logger = logging.getLogger(__name__)
 
 async def post_init(application):
     await application.bot.set_my_commands([
-        ("start", "Главное меню"),
-        ("help", "Справка"),
-        ("cancel", "Отмена"),
+        ("start", "Главное меню / Main menu"),
+        ("language", "Сменить язык / Change language"),
+        ("help", "Справка / Help"),
+        ("cancel", "Отмена / Cancel"),
     ])
-
 
 async def run_bot():
     if not TELEGRAM_BOT_TOKEN:
@@ -158,6 +160,8 @@ async def run_bot():
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("admin", admin_command))
+    application.add_handler(CommandHandler("language", language_command))
+    application.add_handler(CallbackQueryHandler(set_language_callback, pattern="^setlang_"))
     application.add_error_handler(error_handler)
 
     logger.info("Bot is starting...")
