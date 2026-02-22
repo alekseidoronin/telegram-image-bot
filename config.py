@@ -17,6 +17,7 @@ ASSEMBLYAI_KEY = os.getenv("ASSEMBLYAI_KEY", "")
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_PORT = int(os.getenv("ADMIN_PORT", "8080"))
+ADMIN_URL = os.getenv("ADMIN_URL", "http://144.217.12.20:8080")
 DEFAULT_DAILY_LIMIT = 7
 
 # ── Models ───────────────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import ui
 from config import (
     ASSEMBLYAI_KEY,
     GEMINI_API_KEY,
+    ADMIN_URL,
     DEFAULT_DAILY_LIMIT,
     CHOOSE_MODE,
     CHOOSE_RATIO,
@@ -512,6 +513,7 @@ async def admin_command(update, context):
     
     lang = context.user_data.get("lang", "ru")
     text = t("admin_panel", lang, total_users=total_users, total_gens=total_gens, total_cost=total_cost)
+    text += f"\n\n🔗 <b>Web Dashboard:</b> {ADMIN_URL}"
     
     if update.callback_query:
         await update.callback_query.answer()

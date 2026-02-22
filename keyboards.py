@@ -2,9 +2,10 @@
 All inline keyboard builders.
 """
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from config import (
+    ADMIN_URL,
     ACTION_DONE_PHOTOS,
     ACTION_ENHANCE,
     ACTION_GENERATE,
@@ -31,7 +32,13 @@ def mode_keyboard(lang="ru", is_admin=False):
         [InlineKeyboardButton(t("btn_language", lang), callback_data="btn_language")],
     ]
     if is_admin:
-        keyboard.append([InlineKeyboardButton(t("btn_admin", lang), callback_data="btn_admin")])
+        # Mini App (WebApp) button
+        keyboard.append([
+            InlineKeyboardButton(
+                t("btn_admin", lang), 
+                web_app=WebAppInfo(url=ADMIN_URL)
+            )
+        ])
     return InlineKeyboardMarkup(keyboard)
 
 

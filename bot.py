@@ -109,7 +109,6 @@ async def run_bot():
                     pattern="^(" + MODE_TXT2IMG + "|" + MODE_IMG2IMG + "|" + MODE_MULTI + ")$",
                 ),
                 CallbackQueryHandler(language_command, pattern="^btn_language$"),
-                CallbackQueryHandler(admin_command, pattern="^btn_admin$"),
                 menu_handler,
             ],
             CHOOSE_RATIO: [
