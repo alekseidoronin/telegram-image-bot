@@ -214,11 +214,11 @@ async def image_to_image(api_key, image_bytes, prompt, aspect_ratio="1:1", quali
             _image_part(image_bytes),
             {"text": (
                 "This is my original photo. Make a precise edit: " + prompt + ". "
-                "CRITICAL INSTRUCTION: You MUST return exactly ONE single image. "
-                "DO NOT generate a collage, grid, or multiple variations. "
-                "Keep everything else exactly the same — same background, people, "
-                "colors, composition, lighting, angle. "
-                "Only change what was requested. Do not regenerate the photo."
+                "CRITICAL INSTRUCTION: You MUST return exactly ONE single cohesive picture. "
+                "DO NOT generate a collage, DO NOT generate a grid, DO NOT generate multiple variations, DO NOT generate a split-screen. "
+                "The output MUST be a standard single-frame portrait/photo of ONE subject. "
+                "Keep everything else exactly the same — same background, people, colors, composition, lighting, angle. "
+                "Only change what was requested. Do not regenerate the photo from scratch."
             )},
         ]
         images = await _call_api(api_key, parts, aspect_ratio, quality, search=search)

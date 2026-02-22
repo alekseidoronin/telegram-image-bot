@@ -38,11 +38,13 @@ def mode_keyboard():
 
 
 def ratio_keyboard():
+    from config import RATIO_LABELS
     rows = []
     row = []
     for r in RATIO_OPTIONS:
-        row.append(InlineKeyboardButton(r, callback_data=RATIO_PREFIX + r))
-        if len(row) == 5:
+        label = RATIO_LABELS.get(r, r)
+        row.append(InlineKeyboardButton(label, callback_data=RATIO_PREFIX + r))
+        if len(row) == 2:
             rows.append(row)
             row = []
     if row:
