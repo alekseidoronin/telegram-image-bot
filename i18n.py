@@ -92,7 +92,7 @@ STRINGS = {
             "🎤 Можно отправлять голосовые вместо текста"
         ),
         
-        "limit_exceeded": "К сожалению, ваш дневной лимит генераций исчерпан. Возвращайтесь завтра!",
+        "limit_exceeded": "К сожалению, ваш лимит генераций исчерпан. Свяжитесь с администратором для пополнения!",
         "generation_error": "Не удалось сгенерировать. Попробуй другой промпт.",
         "voice_error": "Не удалось распознать. Попробуй ещё раз или отправь текстом.",
         "expected_text": "Режим «Текст -> Изображение» — жду текст, а не фото.\nДля редактирования фото нажми /start и выбери «Фото -> Фото».",
@@ -200,7 +200,7 @@ STRINGS = {
             "🎤 You can send voice messages instead of text"
         ),
         
-        "limit_exceeded": "Unfortunately, your daily generation limit has been reached. Come back tomorrow!",
+        "limit_exceeded": "Unfortunately, your generation limit has been reached. Please contact the administrator to top up!",
         "generation_error": "Failed to generate. Try another prompt.",
         "voice_error": "Could not recognize audio. Try again or send text.",
         "expected_text": "Mode «Text -> Image» — waiting for text, not photo.\nTo edit a photo use /start and choose «Photo -> Photo».",

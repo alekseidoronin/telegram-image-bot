@@ -19,7 +19,7 @@ from config import (
     ASSEMBLYAI_KEY,
     GEMINI_API_KEY,
     ADMIN_URL,
-    DEFAULT_DAILY_LIMIT,
+    DEFAULT_TOTAL_LIMIT,
     CHOOSE_MODE,
     CHOOSE_RATIO,
     CHOOSE_QUALITY,
@@ -327,8 +327,8 @@ async def generate_handler(update, context):
 
     # Check limits
     user = await database.get_user(user_id)
-    limit = user['daily_limit'] if user else DEFAULT_DAILY_LIMIT
-    usage = await database.get_user_today_count(user_id)
+    limit = user['daily_limit'] if user else DEFAULT_TOTAL_LIMIT
+    usage = await database.get_user_total_count(user_id)
     
     if usage >= limit:
         await query.answer(t("limit_exceeded", lang), show_alert=True)

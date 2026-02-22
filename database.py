@@ -20,7 +20,7 @@ async def init_db():
                 telegram_id INTEGER PRIMARY KEY,
                 username TEXT,
                 full_name TEXT,
-                daily_limit INTEGER DEFAULT 10,
+                daily_limit INTEGER DEFAULT 7,
                 is_blocked INTEGER DEFAULT 0,
                 language TEXT DEFAULT 'ru',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -132,6 +132,16 @@ async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, succe
         
         await db.commit()
         return cost
+
+async def get_user_total_count(telegram_id):
+    """Get total number of successful generations for a user."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute('''
+            SELECT COUNT(*) FROM generations 
+            WHERE telegram_id = ? AND success = 1
+        ''', (telegram_id,)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0
 
 async def get_user_today_count(telegram_id):
     """Get number of successful generations today for a user."""
