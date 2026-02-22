@@ -460,7 +460,3 @@ async def error_handler(update, context):
 
 async def global_trace(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("RECEIVED UPDATE: %s", update.to_dict())
-    if isinstance(update, Update) and update.effective_message:
-        await update.effective_message.reply_text(
-            ui.error_text("Произошла ошибка. Нажми /start.")
-        )
