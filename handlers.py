@@ -381,11 +381,7 @@ async def generate_handler(update, context):
     caption = ui.settings_line(context)
 
     # Try to update progress message to "Done"
-    remaining = limit - usage - 1
-    if remaining < 0:
-        remaining = 0
-    
-    done_text = t("msg_done", lang) + f" ({remaining}/{limit})"
+    done_text = t("msg_done", lang)
     try:
         await query.message.edit_text(done_text)
     except Exception:
