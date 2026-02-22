@@ -22,7 +22,7 @@ DEFAULT_DAILY_LIMIT = 7
 # ── Models ───────────────────────────────────────────────────────────────────
 
 IMAGE_MODEL = "gemini-3-pro-image-preview"
-TEXT_MODEL = "gemini-2.0-flash"
+TEXT_MODEL = "gemini-1.5-flash"
 API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
     + IMAGE_MODEL

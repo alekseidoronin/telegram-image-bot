@@ -63,8 +63,6 @@ def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fals
         image_config["aspectRatio"] = aspect_ratio
     if quality and quality != "1K":
         image_config["imageSize"] = quality
-    
-    image_config["numberOfImages"] = 1
 
     payload = {
         "contents": [{
