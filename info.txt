@@ -271,7 +271,7 @@ Bash List available Gemini models for image generation
 IN
 cd /Users/alekseidoronin/Documents/telegram-image-bot && python3 -c "
 from google import genai
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 for m in client.models.list():
     name = m.name
     if 'image' in name.lower() or 'flash' in name.lower() or 'imagen' in name.lower():
@@ -375,7 +375,7 @@ from google import genai
 from google.genai import types
 import json
 
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 
 # Check what models support image generation and their configs
 models_to_check = [
@@ -418,7 +418,7 @@ python3 -c "
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 
 # Test text-to-image with gemini-2.0-flash-exp-image-generation
 print('Testing gemini-2.0-flash-exp-image-generation...')
@@ -475,7 +475,7 @@ python3 -c "
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 
 # Test gemini-3-pro-image-preview with image_size
 print('Testing gemini-3-pro-image-preview with image_size...')
@@ -559,7 +559,7 @@ python3 -c "
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 
 # Test multi-image input (2 images + prompt)
 print('Testing multi-image input...')
@@ -656,7 +656,7 @@ from google.genai import types
 from PIL import Image
 from io import BytesIO
 
-client = genai.Client(api_key='AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU')
+client = genai.Client(api_key='[REMOVED]')
 
 # Test gemini-3-pro-image-preview text-to-image
 print('=== gemini-3-pro-image-preview ===')
@@ -1956,7 +1956,7 @@ python3 -c "
 # Try raw REST API with imageGenerationConfig
 import requests, json
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key={API_KEY}'
 
 payload = {
@@ -2011,7 +2011,7 @@ import requests, json, base64
 from PIL import Image
 from io import BytesIO
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key={API_KEY}'
 
 # Try with output_image_config at top level
@@ -2054,7 +2054,7 @@ import requests, json, base64
 from PIL import Image
 from io import BytesIO
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key={API_KEY}'
 
 # Try imageSize field name
@@ -2953,7 +2953,7 @@ import requests, json, base64
 from PIL import Image
 from io import BytesIO
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 
 # Create a test image
 test_img = Image.new('RGB', (256, 256), color='green')
@@ -5319,7 +5319,7 @@ import requests, json, base64
 from PIL import Image
 from io import BytesIO
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=' + API_KEY
 
 # Test with role field (as per docs)
@@ -5637,7 +5637,7 @@ IN
 python3 -c "
 import requests, json
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=' + API_KEY
 
 # Test simple text-to-image
@@ -5675,7 +5675,7 @@ IN
 python3 -c "
 import requests, json
 
-API_KEY = 'AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU'
+API_KEY = '[REMOVED]'
 url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=' + API_KEY
 
 # Test with 4K + aspect ratio (might cause 400)
@@ -6371,7 +6371,7 @@ Summary:
 
    - **`.env`** — API keys
      ```
-     GEMINI_API_KEY=AIzaSyCgfWHZLLhgn8YfRbZKFPVpBhuDcFBo6qU
+     GEMINI_API_KEY=[REMOVED]
      TELEGRAM_BOT_TOKEN=8221716809:AAHrVXuhq-FJF6BIS12Rm_qMY3NGsJ-WxNE
      ASSEMBLYAI_KEY=e777ec09ea494689adf72a1defeac8f7
      ```
