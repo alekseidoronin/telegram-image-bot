@@ -21,7 +21,13 @@
         <div class="card text-white {% if user_data.remaining == 0 %}bg-danger{% else %}bg-info{% endif %} mb-3">
             <div class="card-header">Осталось кредитов</div>
             <div class="card-body">
-                <h4 class="card-title">{{ user_data.remaining }}</h4>
+                <form action="/admin/users/{{ user_data.telegram_id }}/limit" method="post" class="d-inline">
+                    <div class="input-group">
+                        <input type="number" name="remaining" value="{{ user_data.remaining }}"
+                            class="form-control form-control-sm" min="0">
+                        <button type="submit" class="btn btn-sm btn-light">OK</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -29,13 +35,7 @@
         <div class="card text-dark bg-light mb-3">
             <div class="card-header">Лимит в базе</div>
             <div class="card-body">
-                <form action="/admin/users/{{ user_data.telegram_id }}/limit" method="post" class="d-inline">
-                    <div class="input-group">
-                        <input type="number" name="limit" value="{{ user_data.daily_limit }}"
-                            class="form-control form-control-sm">
-                        <button type="submit" class="btn btn-sm btn-primary">OK</button>
-                    </div>
-                </form>
+                <h4 class="card-title">{{ user_data.daily_limit }}</h4>
             </div>
         </div>
     </div>

@@ -27,16 +27,12 @@
                 </td>
                 <td>{{ user.total_count }}</td>
                 <td>
-                    <span class="badge {% if user.remaining == 0 %}bg-danger{% else %}bg-info{% endif %}">
-                        {{ user.remaining }}
-                    </span>
-                </td>
-                <td>
                     <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
-                        <input type="number" name="limit" value="{{ user.daily_limit }}" style="width: 60px;">
-                        <button type="submit" class="btn btn-sm btn-outline-primary">OK</button>
+                        <input type="number" name="remaining" value="{{ user.remaining }}" style="width: 60px;" min="0">
+                        <button type="submit" class="btn btn-sm btn-outline-info">OK</button>
                     </form>
                 </td>
+                <td>{{ user.daily_limit }}</td>
                 <td>
                     <span class="badge {% if user.is_admin_bool %}bg-primary{% else %}bg-secondary{% endif %}">
                         {{ "Админ" if user.is_admin_bool else "Юзер" }}

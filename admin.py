@@ -100,9 +100,14 @@ async def user_detail(tid: int, request: Request, user=Depends(get_current_user)
     })
 
 @app.post("/admin/users/{tid}/limit")
-async def update_limit(tid: int, limit: int = Form(...), user=Depends(get_current_user)):
+async def update_limit(tid: int, remaining: int = Form(...), user=Depends(get_current_user)):
     if not user: return RedirectResponse(url="/login")
-    await database.set_user_limit(tid, limit)
+    
+    # Calculate new limit based on current usage + desired remaining
+    usage = await database.get_user_total_count(tid)
+    new_limit = usage + remaining
+    
+    await database.set_user_limit(tid, new_limit)
     return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.post("/admin/users/{tid}/block")

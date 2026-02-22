@@ -74,7 +74,7 @@ async def start(update, context):
     context.user_data.clear()
     context.user_data["lang"] = lang
     text = ui.welcome_text(lang)
-    is_admin = await database.is_user_admin(user_id)
+    is_admin = await database.is_user_admin(user.id)
     markup = mode_keyboard(lang, is_admin=is_admin)
     if update.message:
         await update.message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
