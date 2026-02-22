@@ -512,7 +512,12 @@ async def admin_command(update, context):
     
     lang = context.user_data.get("lang", "ru")
     text = t("admin_panel", lang, total_users=total_users, total_gens=total_gens, total_cost=total_cost)
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+    
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.reply_text(text, parse_mode=ParseMode.HTML)
+    elif update.message:
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
 async def cancel(update, context):
@@ -528,7 +533,14 @@ async def cancel(update, context):
 
 async def language_command(update, context):
     lang = context.user_data.get("lang", "ru")
-    await update.message.reply_text(t("select_lang", lang), reply_markup=language_keyboard(lang))
+    markup = language_keyboard(lang)
+    text = t("select_lang", lang)
+    
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.reply_text(text, reply_markup=markup)
+    elif update.message:
+        await update.message.reply_text(text, reply_markup=markup)
 
 
 async def set_language_callback(update, context):
