@@ -8,6 +8,7 @@ import threading
 from io import BytesIO
 
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import ConversationHandler, ContextTypes
 
 import database
@@ -61,10 +62,10 @@ async def start(update, context):
     context.user_data.clear()
     text = ui.welcome_text()
     if update.message:
-        await update.message.reply_text(text, reply_markup=mode_keyboard())
+        await update.message.reply_text(text, reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
     elif update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text, reply_markup=mode_keyboard())
+        await update.callback_query.edit_message_text(text, reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
     return CHOOSE_MODE
 
 
@@ -72,7 +73,7 @@ async def go_menu(update, context):
     query = update.callback_query
     await query.answer()
     context.user_data.clear()
-    await query.edit_message_text(ui.welcome_text(), reply_markup=mode_keyboard())
+    await query.edit_message_text(ui.welcome_text(), reply_markup=mode_keyboard(), parse_mode=ParseMode.HTML)
     return CHOOSE_MODE
 
 
@@ -84,6 +85,7 @@ async def mode_chosen(update, context):
     await query.edit_message_text(
         ui.ratio_header(context),
         reply_markup=ratio_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CHOOSE_RATIO
 
@@ -96,6 +98,7 @@ async def ratio_chosen(update, context):
     await query.edit_message_text(
         ui.quality_header(context),
         reply_markup=quality_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CHOOSE_QUALITY
 
@@ -108,6 +111,7 @@ async def quality_chosen(update, context):
     await query.edit_message_text(
         ui.search_header(context),
         reply_markup=search_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CHOOSE_SEARCH
 
@@ -119,20 +123,21 @@ async def search_chosen(update, context):
     mode = context.user_data.get("mode", MODE_TXT2IMG)
 
     if mode == MODE_IMG2IMG:
-        await query.edit_message_text(ui.prompt_header(context))
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
         return AWAITING_PHOTO
 
     elif mode == MODE_MULTI:
         context.user_data["multi_images"] = []
-        await query.edit_message_text(ui.prompt_header(context))
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
         await query.message.reply_text(
             ui.photo_count_text(0),
             reply_markup=done_photos_keyboard(0),
+            parse_mode=ParseMode.HTML
         )
         return AWAITING_MULTI_PHOTOS
 
     else:
-        await query.edit_message_text(ui.prompt_header(context))
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
         return AWAITING_PROMPT
 
 
@@ -202,6 +207,7 @@ async def prompt_received(update, context):
     await update.message.reply_text(
         ui.prompt_confirm_text(prompt, context),
         reply_markup=prompt_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
 
@@ -209,7 +215,8 @@ async def prompt_received(update, context):
 async def voice_received(update, context):
     if not ASSEMBLYAI_KEY:
         await update.message.reply_text(
-            ui.error_text("Голосовые сообщения не настроены. Отправь текстом.")
+            ui.error_text("Голосовые сообщения не настроены. Отправь текстом."),
+            parse_mode=ParseMode.HTML
         )
         return AWAITING_PROMPT
 
@@ -225,7 +232,8 @@ async def voice_received(update, context):
 
     if not text:
         await status_msg.edit_text(
-            ui.error_text("Не удалось распознать. Попробуй ещё раз или отправь текстом.")
+            ui.error_text("Не удалось распознать. Попробуй ещё раз или отправь текстом."),
+            parse_mode=ParseMode.HTML
         )
         return AWAITING_PROMPT
 
@@ -234,6 +242,7 @@ async def voice_received(update, context):
     await update.message.reply_text(
         ui.prompt_confirm_text(text, context),
         reply_markup=prompt_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
 
@@ -251,6 +260,7 @@ async def enhance_prompt_handler(update, context):
     await query.edit_message_text(
         ui.enhanced_prompt_text(enhanced),
         reply_markup=generate_only_keyboard(),
+        parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
 
@@ -348,6 +358,7 @@ async def generate_handler(update, context):
         await context.bot.send_message(
             chat_id=chat_id,
             text=ui.error_text("Не удалось сгенерировать. Попробуй другой промпт."),
+            parse_mode=ParseMode.HTML
         )
 
     # Log generation
@@ -376,25 +387,29 @@ async def photo_in_prompt_state(update, context):
             ui.error_text(
                 "Режим «Текст -> Изображение» — жду текст, а не фото.\n"
                 "Для редактирования фото нажми /start и выбери «Фото -> Фото»."
-            )
+            ),
+            parse_mode=ParseMode.HTML
         )
     else:
         await update.message.reply_text(
-            ui.error_text("Фото уже загружено. Отправь текст или голосовое.")
+            ui.error_text("Фото уже загружено. Отправь текст или голосовое."),
+            parse_mode=ParseMode.HTML
         )
     return AWAITING_PROMPT
 
 
 async def text_in_photo_state(update, context):
     await update.message.reply_text(
-        ui.error_text("Жду фотографию. Отправь фото или нажми /start для другого режима.")
+        ui.error_text("Жду фотографию. Отправь фото или нажми /start для другого режима."),
+        parse_mode=ParseMode.HTML
     )
     return AWAITING_PHOTO
 
 
 async def voice_in_photo_state(update, context):
     await update.message.reply_text(
-        ui.error_text("Жду фотографию, а не голосовое. Отправь фото.")
+        ui.error_text("Жду фотографию, а не голосовое. Отправь фото."),
+        parse_mode=ParseMode.HTML
     )
     return AWAITING_PHOTO
 
@@ -404,6 +419,7 @@ async def text_in_multi_photos(update, context):
     await update.message.reply_text(
         ui.error_text("Жду фотографии. Отправь фото или нажми Готово."),
         reply_markup=done_photos_keyboard(count),
+        parse_mode=ParseMode.HTML
     )
     return AWAITING_MULTI_PHOTOS
 
@@ -413,6 +429,7 @@ async def voice_in_multi_photos(update, context):
     await update.message.reply_text(
         ui.error_text("Жду фотографии, а не голосовое. Отправь фото."),
         reply_markup=done_photos_keyboard(count),
+        parse_mode=ParseMode.HTML
     )
     return AWAITING_MULTI_PHOTOS
 

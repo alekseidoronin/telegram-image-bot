@@ -58,15 +58,15 @@ async def init_db():
         
         # Insert default pricing if not exists
         default_prices = [
-            ('txt2img', '1K', 0.02, 0.0),
-            ('txt2img', '2K', 0.04, 0.0),
-            ('txt2img', '4K', 0.08, 0.0),
-            ('img2img', '1K', 0.02, 0.0),
-            ('img2img', '2K', 0.04, 0.0),
-            ('img2img', '4K', 0.08, 0.0),
-            ('multi', '1K', 0.02, 0.0),
-            ('multi', '2K', 0.04, 0.0),
-            ('multi', '4K', 0.08, 0.0),
+            ('txt2img', '1K', 0.013, 0.0),
+            ('txt2img', '2K', 0.013, 0.0),
+            ('txt2img', '4K', 0.024, 0.0),
+            ('img2img', '1K', 0.013, 0.0),
+            ('img2img', '2K', 0.013, 0.0),
+            ('img2img', '4K', 0.024, 0.0),
+            ('multi', '1K', 0.013, 0.0),
+            ('multi', '2K', 0.013, 0.0),
+            ('multi', '4K', 0.024, 0.0),
         ]
         for p in default_prices:
             await db.execute('''
@@ -119,6 +119,13 @@ async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, succe
             INSERT INTO generations (telegram_id, mode, quality, aspect_ratio, prompt, api_cost, success)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (telegram_id, mode, quality, aspect_ratio, prompt, cost, success))
+        
+        if success == 1:
+            await db.execute('''
+                UPDATE users SET daily_limit = daily_limit - 1 
+                WHERE telegram_id = ? AND daily_limit > 0
+            ''', (telegram_id,))
+            
         await db.commit()
         return cost
 
