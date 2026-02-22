@@ -19,7 +19,7 @@
             <tr>
                 <td>{{ user.telegram_id }}</td>
                 <td>
-                    <strong>{{ user.full_name }}</strong><br>
+                    <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name }}</a></strong><br>
                     <small class="text-muted">@{{ user.username or '-' }}</small>
                 </td>
                 <td>

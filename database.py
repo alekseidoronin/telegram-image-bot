@@ -148,6 +148,18 @@ async def get_all_users():
         async with db.execute('SELECT * FROM users ORDER BY last_active DESC') as cursor:
             return await cursor.fetchall()
 
+async def get_user_generations(telegram_id, limit=50):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('''
+            SELECT id, mode, quality, aspect_ratio, prompt, api_cost, success, created_at 
+            FROM generations 
+            WHERE telegram_id = ? 
+            ORDER BY created_at DESC 
+            LIMIT ?
+        ''', (telegram_id, limit)) as cursor:
+            return await cursor.fetchall()
+
 async def get_stats():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

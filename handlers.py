@@ -463,6 +463,26 @@ async def help_command(update, context):
     await update.message.reply_text(text)
 
 
+async def admin_command(update, context):
+    user_id = update.effective_user.id
+    if user_id != 632600126:
+        return
+    
+    stats = await database.get_stats()
+    total_users = stats.get('total_users', 0)
+    total_gens = stats.get('total_generations', 0)
+    total_cost = stats.get('total_cost', 0.0)
+    
+    text = (
+        "👑 <b>Панель администратора</b>\n\n"
+        f"👥 Всего пользователей: {total_users}\n"
+        f"🖼 Успешных генераций: {total_gens}\n"
+        f"💵 Затраты API: ${total_cost:.3f}\n\n"
+        "<i>Детальная информация по пользователям доступна в веб-панели.</i>"
+    )
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+
 async def cancel(update, context):
     context.user_data.clear()
     await update.message.reply_text(

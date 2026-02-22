@@ -68,6 +68,24 @@ async def users_list(request: Request, user=Depends(get_current_user)):
         "page": "users"
     })
 
+@app.get("/admin/users/{tid}", response_class=HTMLResponse)
+async def user_detail(tid: int, request: Request, user=Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    user_data = await database.get_user(tid)
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    generations = await database.get_user_generations(tid, limit=100)
+    
+    return templates.TemplateResponse("user_detail.html", {
+        "request": request, 
+        "user_data": user_data,
+        "generations": generations,
+        "page": "users"
+    })
+
 @app.post("/admin/users/{tid}/limit")
 async def update_limit(tid: int, limit: int = Form(...), user=Depends(get_current_user)):
     if not user: return RedirectResponse(url="/login")
