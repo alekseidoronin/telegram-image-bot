@@ -32,11 +32,11 @@ def mode_keyboard(lang="ru", is_admin=False):
         [InlineKeyboardButton(t("btn_language", lang), callback_data="btn_language")],
     ]
     if is_admin:
-        # Mini App (WebApp) button
+        # Standard URL button because Mini App requires HTTPS
         keyboard.append([
             InlineKeyboardButton(
                 t("btn_admin", lang), 
-                web_app=WebAppInfo(url=ADMIN_URL)
+                url=ADMIN_URL
             )
         ])
     return InlineKeyboardMarkup(keyboard)
