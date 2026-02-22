@@ -32,7 +32,7 @@ PROGRESS_FRAMES = [
 ESTIMATED_TIMES = {
     "1K": 35,
     "2K": 50,
-    "4K": 70,
+    "4K": 120,
 }
 
 

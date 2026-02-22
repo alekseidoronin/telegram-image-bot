@@ -63,6 +63,8 @@ def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fals
         image_config["aspectRatio"] = aspect_ratio
     if quality and quality != "1K":
         image_config["imageSize"] = quality
+    
+    image_config["numberOfImages"] = 1
 
     payload = {
         "contents": [{
@@ -212,6 +214,8 @@ async def image_to_image(api_key, image_bytes, prompt, aspect_ratio="1:1", quali
             _image_part(image_bytes),
             {"text": (
                 "This is my original photo. Make a precise edit: " + prompt + ". "
+                "CRITICAL INSTRUCTION: You MUST return exactly ONE single image. "
+                "DO NOT generate a collage, grid, or multiple variations. "
                 "Keep everything else exactly the same — same background, people, "
                 "colors, composition, lighting, angle. "
                 "Only change what was requested. Do not regenerate the photo."

@@ -17,8 +17,7 @@ ASSEMBLYAI_KEY = os.getenv("ASSEMBLYAI_KEY", "")
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_PORT = int(os.getenv("ADMIN_PORT", "8080"))
-DB_PATH = "bot_database.db"
-DEFAULT_DAILY_LIMIT = 10
+DEFAULT_DAILY_LIMIT = 7
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
