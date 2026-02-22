@@ -90,6 +90,7 @@ async def run_bot():
     application = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
+        .concurrent_updates(True)
         .post_init(post_init)
         .build()
     )

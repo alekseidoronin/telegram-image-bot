@@ -167,7 +167,9 @@ async def _call_api(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fal
 async def enhance_prompt(api_key, prompt):
     """Enhance prompt using Gemini text model."""
     client = genai.Client(api_key=api_key)
-    try:
+    loop = asyncio.get_event_loop()
+    
+    def _do_enhance():
         response = client.models.generate_content(
             model=TEXT_MODEL,
             contents=[
@@ -180,7 +182,10 @@ async def enhance_prompt(api_key, prompt):
                 "Original: " + prompt
             ],
         )
-        enhanced = response.text.strip()
+        return response.text.strip()
+
+    try:
+        enhanced = await loop.run_in_executor(None, _do_enhance)
         return enhanced if enhanced else prompt
     except Exception:
         logger.exception("enhance_prompt failed")

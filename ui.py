@@ -65,10 +65,7 @@ async def run_progress_bar(message, quality="1K", stop_event=None):
         wait_time = estimated / total_frames
         if stop_event:
             try:
-                await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(None, stop_event.wait, wait_time),
-                    timeout=wait_time + 0.5,
-                )
+                await asyncio.wait_for(stop_event.wait(), timeout=wait_time)
                 if stop_event.is_set():
                     break
             except asyncio.TimeoutError:

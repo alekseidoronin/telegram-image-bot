@@ -287,8 +287,8 @@ async def generate_handler(update, context):
     except Exception:
         pass
 
-    # Start progress bar (animates correctly — API call runs in thread pool)
-    stop_event = threading.Event()
+    # Start progress bar (does not block threads)
+    stop_event = asyncio.Event()
     progress_task = asyncio.create_task(
         ui.run_progress_bar(query.message, quality, stop_event)
     )
