@@ -19,6 +19,7 @@ from config import (
     ASSEMBLYAI_KEY,
     GEMINI_API_KEY,
     ADMIN_URL,
+    ADMIN_ID,
     DEFAULT_TOTAL_LIMIT,
     CHOOSE_MODE,
     CHOOSE_RATIO,
@@ -51,6 +52,13 @@ from keyboards import (
 from i18n import t
 
 logger = logging.getLogger(__name__)
+
+async def notify_admin(context: ContextTypes.DEFAULT_TYPE, message: str):
+    """Sends a notification message to the admin."""
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"⚠️ <b>Системное уведомление:</b>\n{message}", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Failed to notify admin: {e}")
 
 
 # ── Main Flow ────────────────────────────────────────────────────────────────
@@ -277,7 +285,12 @@ async def voice_received(update, context):
     await file.download_to_memory(buf)
     buf.seek(0)
 
-    text = await voice_service.transcribe(ASSEMBLYAI_KEY, buf.getvalue())
+    try:
+        text = await voice_service.transcribe(ASSEMBLYAI_KEY, buf.getvalue())
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        await notify_admin(context, f"Ошибка транскрибации у юзера <code>{update.effective_user.id}</code> (@{update.effective_user.username or '—'}):\n<code>{str(e)}</code>")
+        text = None
 
     if not text:
         await status_msg.edit_text(
@@ -358,22 +371,27 @@ async def generate_handler(update, context):
     # Generate
     result = None
     try:
-        if mode == MODE_TXT2IMG:
-            result = await image_service.text_to_image(
-                GEMINI_API_KEY, prompt, ratio, quality, search=search,
-            )
-        elif mode == MODE_IMG2IMG:
-            input_image = context.user_data.get("input_image")
-            if input_image:
-                result = await image_service.image_to_image(
-                    GEMINI_API_KEY, input_image, prompt, ratio, quality, search=search,
+        try:
+            if mode == MODE_TXT2IMG:
+                result = await image_service.text_to_image(
+                    GEMINI_API_KEY, prompt, ratio, quality, search=search,
                 )
-        elif mode == MODE_MULTI:
-            images_bytes = context.user_data.get("multi_images", [])
-            if len(images_bytes) >= 2:
-                result = await image_service.multi_image(
-                    GEMINI_API_KEY, images_bytes, prompt, ratio, quality, search=search,
-                )
+            elif mode == MODE_IMG2IMG:
+                input_image = context.user_data.get("input_image")
+                if input_image:
+                    result = await image_service.image_to_image(
+                        GEMINI_API_KEY, input_image, prompt, ratio, quality, search=search,
+                    )
+            elif mode == MODE_MULTI:
+                images_bytes = context.user_data.get("multi_images", [])
+                if len(images_bytes) >= 2:
+                    result = await image_service.multi_image(
+                        GEMINI_API_KEY, images_bytes, prompt, ratio, quality, search=search,
+                    )
+        except Exception as e:
+            logger.error(f"Generation error: {e}")
+            await notify_admin(context, f"Ошибка генерации у юзера <code>{user_id}</code> (@{query.from_user.username or '—'}):\nРежим: {mode}\nОшибка: <code>{str(e)}</code>")
+            result = None
     finally:
         stop_event.set()
         await progress_task
@@ -576,6 +594,10 @@ async def set_language_callback(update, context):
 
 async def error_handler(update, context):
     logger.error(msg="Exception while handling update:", exc_info=context.error)
+    # Notify admin about critical errors
+    err_str = str(context.error)
+    if any(q in err_str.lower() for q in ["rate limit", "quota", "exhausted", "api key", "connection"]):
+        await notify_admin(context, f"Критическая ошибка в работе бота:\n<code>{err_str}</code>")
 
 
 async def global_trace(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -18,6 +18,7 @@ from config import (
     TELEGRAM_BOT_TOKEN,
     GEMINI_API_KEY,
     ADMIN_PORT,
+    ADMIN_ID,
     CHOOSE_MODE,
     CHOOSE_RATIO,
     CHOOSE_QUALITY,
@@ -81,6 +82,10 @@ async def post_init(application):
         ("help", "Справка / Help"),
         ("cancel", "Отмена / Cancel"),
     ])
+    try:
+        await application.bot.send_message(chat_id=ADMIN_ID, text="🔄 Бот успешно запущен и готов к работе.")
+    except Exception as e:
+        logger.error(f"Failed to send startup notification: {e}")
 
 async def run_bot():
     if not TELEGRAM_BOT_TOKEN:
