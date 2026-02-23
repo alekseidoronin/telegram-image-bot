@@ -1,19 +1,46 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Nano Banana Admin{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        body { background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background-color: #212529; padding-top: 20px; }
-        .sidebar a { color: #fff; text-decoration: none; display: block; padding: 10px 20px; }
-        .sidebar a:hover, .sidebar a.active { background-color: #343a40; border-left: 4px solid #0d6efd; }
-        .content { padding: 20px; }
-        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background-color: #212529;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            padding: 10px 20px;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background-color: #343a40;
+            border-left: 4px solid #0d6efd;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -22,7 +49,12 @@
                 <a href="/admin" class="{% if page == 'dashboard' %}active{% endif %}">📊 Дашборд</a>
                 <a href="/admin/users" class="{% if page == 'users' %}active{% endif %}">👥 Пользователи</a>
                 <a href="/admin/pricing" class="{% if page == 'pricing' %}active{% endif %}">💰 Цены</a>
+                <a href="/admin/settings" class="{% if page == 'settings' %}active{% endif %}">⚙️ Настройки</a>
                 <hr class="text-white">
+                <form action="/admin/restart" method="post" class="p-3"
+                    onsubmit="return confirm('Вы уверены? Бот будет недоступен 10-20 секунд.')">
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">🔄 Перезапустить бота</button>
+                </form>
                 <a href="/logout">🚪 Выйти</a>
             </div>
             <div class="col-md-10 content">
@@ -31,4 +63,5 @@
         </div>
     </div>
 </body>
+
 </html>

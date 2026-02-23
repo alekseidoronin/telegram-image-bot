@@ -21,6 +21,8 @@ from config import (
     ADMIN_URL,
     ADMIN_ID,
     DEFAULT_TOTAL_LIMIT,
+    IMAGE_MODEL,
+    TEXT_MODEL,
     CHOOSE_MODE,
     CHOOSE_RATIO,
     CHOOSE_QUALITY,
@@ -149,13 +151,27 @@ async def quality_chosen(update, context):
     await query.answer()
     quality = query.data.replace(QUALITY_PREFIX, "")
     context.user_data["quality"] = quality
+    context.user_data["search"] = False
+    mode = context.user_data.get("mode", MODE_TXT2IMG)
     lang = context.user_data.get("lang", "ru")
-    await query.edit_message_text(
-        ui.search_header(context),
-        reply_markup=search_keyboard(lang),
-        parse_mode=ParseMode.HTML
-    )
-    return CHOOSE_SEARCH
+
+    if mode == MODE_IMG2IMG:
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
+        return AWAITING_PHOTO
+
+    elif mode == MODE_MULTI:
+        context.user_data["multi_images"] = []
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
+        await query.message.reply_text(
+            ui.photo_count_text(0, lang),
+            reply_markup=done_photos_keyboard(0, lang),
+            parse_mode=ParseMode.HTML
+        )
+        return AWAITING_MULTI_PHOTOS
+
+    else:
+        await query.edit_message_text(ui.prompt_header(context), parse_mode=ParseMode.HTML)
+        return AWAITING_PROMPT
 
 
 async def search_chosen(update, context):
@@ -269,7 +285,8 @@ async def prompt_received(update, context):
 
 async def voice_received(update, context):
     lang = context.user_data.get("lang", "ru")
-    if not ASSEMBLYAI_KEY:
+    api_key = await database.get_setting("ASSEMBLYAI_KEY", ASSEMBLYAI_KEY)
+    if not api_key:
         await update.message.reply_text(
             ui.error_text("Голосовые сообщения не настроены. Отправь текстом." if lang == "ru" else "Voice messages are not configured. Send text.", lang),
             parse_mode=ParseMode.HTML
@@ -286,7 +303,7 @@ async def voice_received(update, context):
     buf.seek(0)
 
     try:
-        text = await voice_service.transcribe(ASSEMBLYAI_KEY, buf.getvalue())
+        text = await voice_service.transcribe(api_key, buf.getvalue())
     except Exception as e:
         logger.error(f"Transcription error: {e}")
         await notify_admin(context, f"Ошибка транскрибации у юзера <code>{update.effective_user.id}</code> (@{update.effective_user.username or '—'}):\n<code>{str(e)}</code>")
@@ -303,7 +320,7 @@ async def voice_received(update, context):
     context.user_data["prompt"] = text
     await update.message.reply_text(
         ui.prompt_confirm_text(text, context),
-        reply_markup=prompt_keyboard(),
+        reply_markup=prompt_keyboard(lang),
         parse_mode=ParseMode.HTML
     )
     return CONFIRM_PROMPT
@@ -318,7 +335,9 @@ async def enhance_prompt_handler(update, context):
     original = context.user_data.get("prompt", "")
     lang = context.user_data.get("lang", "ru")
     await query.edit_message_text(t("enhancing_prompt", lang))
-    enhanced = await image_service.enhance_prompt(GEMINI_API_KEY, original)
+    api_key = await database.get_setting("GEMINI_API_KEY", GEMINI_API_KEY)
+    text_model = await database.get_setting("TEXT_MODEL", TEXT_MODEL)
+    enhanced = await image_service.enhance_prompt(api_key, original, text_model=text_model)
     context.user_data["prompt"] = enhanced
     await query.edit_message_text(
         ui.enhanced_prompt_text(enhanced, lang),
@@ -338,14 +357,13 @@ async def generate_handler(update, context):
         await query.answer(t("blocked", lang), show_alert=True)
         return ConversationHandler.END
 
-    # Check limits
+    # Check limits (balance)
     user = await database.get_user(user_id)
     is_admin = await database.is_user_admin(user_id)
-    limit = user['daily_limit'] if user else DEFAULT_TOTAL_LIMIT
-    usage = await database.get_user_total_count(user_id)
+    balance = user['daily_limit'] if user else 0
     
-    if not is_admin and usage >= limit:
-        await query.answer(t("limit_exceeded", lang), show_alert=True)
+    if not is_admin and balance <= 0:
+        await query.answer("У вас закончились генерации." if lang == "ru" else "You have run out of generations.", show_alert=True)
         return CHOOSE_MODE
 
     await query.answer()
@@ -368,25 +386,35 @@ async def generate_handler(update, context):
         ui.run_progress_bar(query.message, quality, stop_event, lang)
     )
 
+    # Fetch settings from DB
+    api_key = await database.get_setting("GEMINI_API_KEY", GEMINI_API_KEY)
+    image_model = await database.get_setting("IMAGE_MODEL", IMAGE_MODEL)
+    text_model = await database.get_setting("TEXT_MODEL", TEXT_MODEL)
+
     # Generate
     result = None
     try:
         try:
             if mode == MODE_TXT2IMG:
+                # Optional auto-enhance for short prompts
+                if len(prompt) < 20:
+                     prompt = await image_service.enhance_prompt(api_key, prompt, text_model=text_model)
+                     context.user_data["prompt"] = prompt
+
                 result = await image_service.text_to_image(
-                    GEMINI_API_KEY, prompt, ratio, quality, search=search,
+                    api_key, prompt, ratio, quality, search=search, image_model=image_model
                 )
             elif mode == MODE_IMG2IMG:
                 input_image = context.user_data.get("input_image")
                 if input_image:
                     result = await image_service.image_to_image(
-                        GEMINI_API_KEY, input_image, prompt, ratio, quality, search=search,
+                        api_key, input_image, prompt, ratio, quality, search=search, image_model=image_model
                     )
             elif mode == MODE_MULTI:
                 images_bytes = context.user_data.get("multi_images", [])
                 if len(images_bytes) >= 2:
                     result = await image_service.multi_image(
-                        GEMINI_API_KEY, images_bytes, prompt, ratio, quality, search=search,
+                        api_key, images_bytes, prompt, ratio, quality, search=search, image_model=image_model
                     )
         except Exception as e:
             logger.error(f"Generation error: {e}")
@@ -434,9 +462,14 @@ async def generate_handler(update, context):
         )
 
     # Log generation
+    success_status = 1 if result else 0
     await database.log_generation(
-        user_id, mode, quality, ratio, prompt, success=(1 if result else 0)
+        user_id, mode, quality, ratio, prompt, success=success_status
     )
+    
+    # Decrease balance if successful
+    if success_status:
+        await database.decrease_user_balance(user_id)
 
     # RESTART LOGIC: Instead of clearing everything, we go back to menu
     # But we want to allow user to generate again with same settings OR choose new mode

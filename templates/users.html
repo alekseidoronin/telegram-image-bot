@@ -1,68 +1,90 @@
 {% extends "base.html" %}
 
+{% block title %}Пользователи - Nano Banana Admin{% endblock %}
+
 {% block content %}
-<h2>👥 Пользователи</h2>
-<div class="card mt-4">
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Имя</th>
-                <th>Всего</th>
-                <th>Осталось</th>
-                <th>Лимит</th>
-                <th>Админ</th>
-                <th>Блок</th>
-                <th>Активен</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.telegram_id }}</td>
-                <td>
-                    <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name }}</a></strong><br>
-                    <small class="text-muted">@{{ user.username or '-' }}</small>
-                </td>
-                <td>{{ user.total_count }}</td>
-                <td>
-                    <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
-                        <input type="number" name="remaining" value="{{ user.remaining }}" style="width: 60px;" min="0">
-                        <button type="submit" class="btn btn-sm btn-outline-info">OK</button>
-                    </form>
-                </td>
-                <td>{{ user.daily_limit }}</td>
-                <td>
-                    <span class="badge {% if user.is_admin_bool %}bg-primary{% else %}bg-secondary{% endif %}">
-                        {{ "Админ" if user.is_admin_bool else "Юзер" }}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge {% if user.is_blocked %}bg-danger{% else %}bg-success{% endif %}">
-                        {{ "Да" if user.is_blocked else "Нет" }}
-                    </span>
-                </td>
-                <td>{{ user.last_active[:16].replace('T', ' ') if user.last_active else '-' }}</td>
-                <td>
-                    <form action="/admin/users/{{ user.telegram_id }}/admin" method="post" class="d-inline">
-                        <input type="hidden" name="admin" value="{{ '0' if user.is_admin_bool else '1' }}">
-                        <button type="submit"
-                            class="btn btn-sm {% if user.is_admin_bool %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}">
-                            {{ "Разжаловать" if user.is_admin_bool else "Назначить админом" }}
-                        </button>
-                    </form>
-                    <form action="/admin/users/{{ user.telegram_id }}/block" method="post" class="d-inline">
-                        <input type="hidden" name="blocked" value="{{ '0' if user.is_blocked else '1' }}">
-                        <button type="submit"
-                            class="btn btn-sm {% if user.is_blocked %}btn-success{% else %}btn-danger{% endif %}">
-                            {{ "Разблочить" if user.is_blocked else "Заблочить" }}
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">👥 Пользователи</h1>
+    <span class="badge bg-primary fs-6">{{ users|length }} всего</span>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('msg') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="card mt-3">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Имя</th>
+                    <th>Генераций</th>
+                    <th>Кредиты</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    <th>Последний раз</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr {% if user.is_blocked %}class="table-danger"{% endif %}>
+                    <td><code>{{ user.telegram_id }}</code></td>
+                    <td>
+                        <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name or 'Без имени' }}</a></strong><br>
+                        <small class="text-muted">@{{ user.username or '—' }}</small>
+                    </td>
+                    <td>{{ user.total_count }}</td>
+                    <td>
+                        <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
+                            <div class="input-group input-group-sm" style="width: 110px;">
+                                <input type="number" name="remaining" value="{{ user.remaining }}" class="form-control" min="-1">
+                                <button type="submit" class="btn btn-outline-primary">OK</button>
+                            </div>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/admin/users/{{ user.telegram_id }}/admin" method="post" class="d-inline">
+                            <input type="hidden" name="admin" value="{{ '0' if user.is_admin_bool else '1' }}">
+                            <button type="submit"
+                                class="btn btn-sm {% if user.is_admin_bool %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                                title="{{ 'Снять права админа' if user.is_admin_bool else 'Назначить админом' }}">
+                                {{ "👑 Админ" if user.is_admin_bool else "Юзер" }}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/admin/users/{{ user.telegram_id }}/block" method="post" class="d-inline">
+                            <input type="hidden" name="blocked" value="{{ '0' if user.is_blocked else '1' }}">
+                            <button type="submit"
+                                class="btn btn-sm {% if user.is_blocked %}btn-success{% else %}btn-outline-warning{% endif %}"
+                                title="{{ 'Разблокировать' if user.is_blocked else 'Заблокировать' }}">
+                                {{ "🔓 Разблочить" if user.is_blocked else "🔒 Блок" }}
+                            </button>
+                        </form>
+                    </td>
+                    <td style="white-space: nowrap;">
+                        {{ user.last_active[:16].replace('T', ' ') if user.last_active else '—' }}
+                    </td>
+                    <td>
+                        <a href="/admin/users/{{ user.telegram_id }}" class="btn btn-sm btn-outline-info" title="Детали">📋</a>
+                        <form action="/admin/users/{{ user.telegram_id }}/delete" method="post" class="d-inline"
+                            onsubmit="return confirm('Удалить пользователя {{ user.full_name or user.telegram_id }} и все его данные?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Пока нет пользователей</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

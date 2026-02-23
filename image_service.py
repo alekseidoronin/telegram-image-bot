@@ -52,11 +52,12 @@ def _image_part(image_bytes):
     }
 
 
-def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=False):
-    """Synchronous Gemini REST API call with retry logic.
-
-    Runs in a thread pool via _call_api() to avoid blocking the event loop.
-    """
+def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=False, image_model=None):
+    """Synchronous Gemini REST API call with retry logic."""
+    from config import IMAGE_MODEL as DEFAULT_IMAGE_MODEL
+    model_name = image_model or DEFAULT_IMAGE_MODEL
+    endpoint_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+    
     # Build imageConfig
     image_config = {}
     if aspect_ratio:
@@ -87,7 +88,7 @@ def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fals
     for attempt in range(MAX_RETRIES + 1):
         try:
             resp = http_requests.post(
-                API_URL + "?key=" + api_key,
+                endpoint_url + "?key=" + api_key,
                 json=payload,
                 timeout=timeout,
             )
@@ -146,7 +147,9 @@ def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fals
     return []
 
 
-async def _call_api(api_key, parts, aspect_ratio="1:1", quality="1K", search=False):
+
+async def _call_api(api_key, parts, aspect_ratio="1:1", quality="1K", search=False, **kwargs):
+
     """Async wrapper — runs the blocking HTTP call in a thread pool."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
@@ -157,6 +160,7 @@ async def _call_api(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fal
             aspect_ratio=aspect_ratio,
             quality=quality,
             search=search,
+            image_model=kwargs.get("image_model")
         ),
     )
 
@@ -164,26 +168,43 @@ async def _call_api(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fal
 # ── Public API ───────────────────────────────────────────────────────────────
 
 
-async def enhance_prompt(api_key, prompt):
-    """Enhance prompt using Gemini text model."""
-    client = genai.Client(api_key=api_key)
-    loop = asyncio.get_event_loop()
+async def enhance_prompt(api_key=None, prompt="", text_model=None):
+    """Enhance prompt using Gemini text model via REST API."""
+    import database
+    from config import TEXT_MODEL as DEFAULT_TEXT_MODEL, GEMINI_API_KEY as DEFAULT_API_KEY
+    
+    # Dynamic settings resolution
+    actual_api_key = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
+    actual_model = text_model or await database.get_setting("TEXT_MODEL", DEFAULT_TEXT_MODEL)
     
     def _do_enhance():
-        response = client.models.generate_content(
-            model=TEXT_MODEL,
-            contents=[
-                "You are an expert prompt engineer for AI image generation. "
-                "Enhance the following prompt to produce better, more vivid images. "
-                "Use narrative style: describe the scene, lighting, atmosphere, "
-                "camera angle, artistic style. "
-                "Keep it concise (max 3 sentences). "
-                "Return ONLY the enhanced prompt. No quotes, no explanation.\n\n"
-                "Original: " + prompt
-            ],
-        )
-        return response.text.strip()
+        endpoint_url = f"https://generativelanguage.googleapis.com/v1beta/models/{actual_model}:generateContent"
+        payload = {
+            "contents": [{
+                "parts": [{"text": 
+                    "You are an expert prompt engineer for AI image generation. "
+                    "Enhance the following prompt to produce better, more vivid images. "
+                    "Use narrative style: describe the scene, lighting, atmosphere, "
+                    "camera angle, artistic style. "
+                    "Keep it concise (max 3 sentences). "
+                    "Return ONLY the enhanced prompt. No quotes, no explanation.\n\n"
+                    "Original: " + prompt
+                }]
+            }]
+        }
+        for attempt in range(3):
+            try:
+                resp = http_requests.post(endpoint_url + "?key=" + actual_api_key, json=payload, timeout=60)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if "candidates" in data and data["candidates"]:
+                        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except Exception:
+                pass
+            time.sleep(2)
+        return None
 
+    loop = asyncio.get_event_loop()
     try:
         enhanced = await loop.run_in_executor(None, _do_enhance)
         return enhanced if enhanced else prompt
@@ -192,26 +213,26 @@ async def enhance_prompt(api_key, prompt):
         return prompt
 
 
-async def text_to_image(api_key, prompt, aspect_ratio="1:1", quality="1K", search=False):
-    """Generate image from text prompt.
+async def text_to_image(api_key, prompt, aspect_ratio="1:1", quality="1K", search=False, **kwargs):
 
-    Docs: contents = [{"text": "prompt"}]
-    """
+    """Generate image from text prompt."""
     try:
         parts = [{"text": prompt}]
-        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search)
+        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search, **kwargs)
         return images[0] if images else None
     except Exception:
         logger.exception("text_to_image failed")
         return None
 
 
-async def image_to_image(api_key, image_bytes, prompt, aspect_ratio="1:1", quality="1K", search=False):
-    """Edit an existing image based on prompt.
-
-    Docs: contents = ["Edit this image...", image]
-    Per docs, for editing: pass image + editing instructions.
-    """
+async def image_to_image(api_key=None, image_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, **kwargs):
+    """Edit an existing image based on prompt."""
+    import database
+    from config import GEMINI_API_KEY as DEFAULT_API_KEY, IMAGE_MODEL as DEFAULT_IMAGE_MODEL
+    
+    actual_api = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
+    actual_model = await database.get_setting("IMAGE_MODEL", DEFAULT_IMAGE_MODEL)
+    
     try:
         parts = [
             _image_part(image_bytes),
@@ -224,18 +245,21 @@ async def image_to_image(api_key, image_bytes, prompt, aspect_ratio="1:1", quali
                 "Only change what was requested. Do not regenerate the photo from scratch."
             )},
         ]
-        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search)
+        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model, **kwargs)
         return images[0] if images else None
     except Exception:
         logger.exception("image_to_image failed")
         return None
 
 
-async def multi_image(api_key, images_bytes, prompt, aspect_ratio="1:1", quality="1K", search=False):
-    """Combine multiple images (2-14) based on prompt.
-
-    Docs: Gemini 3 Pro supports up to 14 reference images.
-    """
+async def multi_image(api_key=None, images_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, **kwargs):
+    """Combine multiple images (2-14) based on prompt."""
+    import database
+    from config import GEMINI_API_KEY as DEFAULT_API_KEY, IMAGE_MODEL as DEFAULT_IMAGE_MODEL
+    
+    actual_api = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
+    actual_model = await database.get_setting("IMAGE_MODEL", DEFAULT_IMAGE_MODEL)
+    
     try:
         parts = [
             {"text": (
@@ -246,7 +270,7 @@ async def multi_image(api_key, images_bytes, prompt, aspect_ratio="1:1", quality
         for img_bytes in images_bytes:
             parts.append(_image_part(img_bytes))
 
-        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search)
+        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model, **kwargs)
         return images[0] if images else None
     except Exception:
         logger.exception("multi_image failed")

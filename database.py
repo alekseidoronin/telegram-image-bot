@@ -83,8 +83,41 @@ async def init_db():
                 VALUES (?, ?, ?, ?)
             ''', p)
             
+        # Settings table
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+            
         await db.commit()
     logger.info("Database initialized at %s", DB_PATH)
+
+async def get_setting(key, default=None):
+    """Retrieve a setting from the database."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT value FROM settings WHERE key = ?', (key,)) as cursor:
+            row = await cursor.fetchone()
+            return row['value'] if row else default
+
+async def set_setting(key, value):
+    """Save or update a setting in the database."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('''
+            INSERT INTO settings (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        ''', (key, str(value)))
+        await db.commit()
+
+async def get_all_settings():
+    """Get all settings as a dictionary."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT * FROM settings') as cursor:
+            rows = await cursor.fetchall()
+            return {row['key']: row['value'] for row in rows}
 
 async def upsert_user(telegram_id, username, full_name):
     """Register or update user info."""
@@ -148,6 +181,12 @@ async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, succe
         
         await db.commit()
         return cost
+
+async def decrease_user_balance(telegram_id):
+    """Decrease user balance by 1."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('UPDATE users SET daily_limit = daily_limit - 1 WHERE telegram_id = ? AND daily_limit > 0', (telegram_id,))
+        await db.commit()
 
 async def get_user_total_count(telegram_id):
     """Get total number of successful generations for a user."""
@@ -220,6 +259,7 @@ async def update_pricing(pricing_id, api_cost, sale_price):
         await db.commit()
 
 async def set_user_limit(telegram_id, limit):
+    """Update user balance directly."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('UPDATE users SET daily_limit = ? WHERE telegram_id = ?', (limit, telegram_id))
         await db.commit()
@@ -237,3 +277,60 @@ async def set_user_admin_status(telegram_id, is_admin):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('UPDATE users SET is_admin = ? WHERE telegram_id = ?', (1 if is_admin else 0, telegram_id))
         await db.commit()
+
+async def delete_user(telegram_id):
+    """Delete a user and all their generations."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('DELETE FROM generations WHERE telegram_id = ?', (telegram_id,))
+        await db.execute('DELETE FROM users WHERE telegram_id = ?', (telegram_id,))
+        await db.commit()
+
+
+async def get_stats_for_period(date_from=None, date_to=None):
+    """Get generation stats for a specific period."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        stats = {}
+        where = "WHERE 1=1"
+        params = []
+        if date_from:
+            where += " AND created_at >= ?"
+            params.append(date_from)
+        if date_to:
+            where += " AND created_at <= ?"
+            params.append(date_to + " 23:59:59")
+
+        async with db.execute(
+            f'SELECT COUNT(*) as count FROM generations {where} AND success=1', params
+        ) as c:
+            row = await c.fetchone()
+            stats['generations'] = row['count']
+        async with db.execute(
+            f'SELECT COALESCE(SUM(api_cost), 0) as cost FROM generations {where}', params
+        ) as c:
+            row = await c.fetchone()
+            stats['api_cost'] = row['cost']
+
+        # Calculate sale revenue
+        async with db.execute('''
+            SELECT COALESCE(SUM(p.sale_price), 0) as revenue
+            FROM generations g
+            JOIN pricing p ON g.mode = p.mode AND g.quality = p.quality
+        ''' + where.replace('created_at', 'g.created_at') + ' AND g.success=1', params
+        ) as c:
+            row = await c.fetchone()
+            stats['revenue'] = row['revenue']
+
+        return stats
+
+
+async def get_today_stats():
+    """Get today's generation stats."""
+    today = datetime.now().strftime('%Y-%m-%d')
+    return await get_stats_for_period(today, today)
+
+
+async def get_month_stats():
+    """Get this month's generation stats."""
+    month_start = datetime.now().strftime('%Y-%m-01')
+    return await get_stats_for_period(month_start)

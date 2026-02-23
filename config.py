@@ -13,6 +13,9 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ASSEMBLYAI_KEY = os.getenv("ASSEMBLYAI_KEY", "")
 
+# Note: These are fallback values. The bot will prefer values from the database
+# if they are set in the Admin Dashboard.
+
 # ── Admin & Database ─────────────────────────────────────────────────────────
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")

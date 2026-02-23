@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - Nano Banana Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">⚙️ Настройки системы</h1>
+</div>
+
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('msg') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <form action="/admin/settings" method="POST">
+
+                <h5 class="mb-3 text-primary">🔑 API Ключи</h5>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Telegram Bot Token</label>
+                    <div class="input-group">
+                        <input type="password" name="TELEGRAM_BOT_TOKEN" id="tg_token" class="form-control"
+                            value="{{ settings.TELEGRAM_BOT_TOKEN }}" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('tg_token', this)">👁</button>
+                    </div>
+                    <div class="form-text text-warning">⚠ Изменение токена требует перезапуска бота.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Gemini API Key</label>
+                    <div class="input-group">
+                        <input type="password" name="GEMINI_API_KEY" id="gemini_key" class="form-control"
+                            value="{{ settings.GEMINI_API_KEY }}" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('gemini_key', this)">👁</button>
+                    </div>
+                    <div class="form-text">Используется для генерации изображений и текста.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">AssemblyAI Key</label>
+                    <div class="input-group">
+                        <input type="password" name="ASSEMBLYAI_KEY" id="aai_key" class="form-control"
+                            value="{{ settings.ASSEMBLYAI_KEY }}" required>
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('aai_key', this)">👁</button>
+                    </div>
+                    <div class="form-text">Используется для распознавания голосовых сообщений.</div>
+                </div>
+
+                <hr class="my-4">
+                <h5 class="mb-3 text-primary">🤖 Модели ИИ</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Image Model</label>
+                        <input type="text" name="IMAGE_MODEL" class="form-control" value="{{ settings.IMAGE_MODEL }}"
+                            required>
+                        <div class="form-text">Модель для генерации изображений</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Text Model</label>
+                        <input type="text" name="TEXT_MODEL" class="form-control" value="{{ settings.TEXT_MODEL }}"
+                            required>
+                        <div class="form-text">Модель для улучшения промптов</div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+                <h5 class="mb-3 text-primary">🔒 Безопасность</h5>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Пароль админ-панели</label>
+                    <div class="input-group">
+                        <input type="password" name="ADMIN_PASSWORD_NEW" id="admin_pw" class="form-control"
+                            placeholder="Оставьте пустым, чтобы не менять">
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVis('admin_pw', this)">👁</button>
+                    </div>
+                    <div class="form-text">Текущий пароль: <code>{{ settings.ADMIN_PASSWORD[:3] }}***</code>. Оставьте поле пустым, чтобы не менять.</div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">💾 Сохранить всё</button>
+                    <a href="/admin" class="btn btn-outline-secondary px-4 py-2">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3 bg-light">
+            <h5>💡 Подсказка</h5>
+            <p class="small text-muted">
+                Значения сохраняются в базу данных. Бот проверяет их перед каждым запросом к внешним API.
+            </p>
+            <p class="small text-muted">
+                Если значение в базе отсутствует — используется значение из <code>.env</code> файла.
+            </p>
+            <hr>
+            <p class="small text-danger">Будьте осторожны при редактировании токенов и ключей.</p>
+        </div>
+
+        <div class="card p-3 mt-3">
+            <h5>🔄 Перезапуск</h5>
+            <p class="small text-muted">
+                После смены Telegram токена необходимо перезапустить бота.
+            </p>
+            <form action="/admin/restart" method="post"
+                onsubmit="return confirm('Перезапустить бота? Он будет недоступен 10-20 секунд.')">
+                <button type="submit" class="btn btn-outline-danger btn-sm w-100">🔄 Перезапустить бота</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleVis(id, btn) {
+    var el = document.getElementById(id);
+    if (el.type === 'password') { el.type = 'text'; btn.textContent = '🙈'; }
+    else { el.type = 'password'; btn.textContent = '👁'; }
+}
+</script>
+{% endblock %}

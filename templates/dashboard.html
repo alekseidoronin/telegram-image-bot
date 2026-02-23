@@ -1,50 +1,95 @@
 {% extends "base.html" %}
 
+{% block title %}Дашборд - Nano Banana Admin{% endblock %}
+
 {% block content %}
-<h2>📊 Дашборд</h2>
-<div class="row mt-4">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">📊 Дашборд</h1>
+</div>
+
+<!-- Общая статистика -->
+<div class="row mt-3">
     <div class="col-md-4">
         <div class="card p-3 text-center">
-            <h5>Всего пользователей</h5>
-            <h2 class="text-primary">{{ stats.total_users }}</h2>
+            <div class="text-muted small">Всего пользователей</div>
+            <h2 class="text-primary mb-0">{{ stats.total_users }}</h2>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card p-3 text-center">
-            <h5>Всего генераций</h5>
-            <h2 class="text-success">{{ stats.total_generations }}</h2>
+            <div class="text-muted small">Всего генераций</div>
+            <h2 class="text-success mb-0">{{ stats.total_generations }}</h2>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card p-3 text-center">
-            <h5>Общие затраты (API)</h5>
-            <h2 class="text-danger">${{ "%.2f"|format(stats.total_cost) }}</h2>
+            <div class="text-muted small">Затраты API (всего)</div>
+            <h2 class="text-danger mb-0">${{ "%.3f"|format(stats.total_cost) }}</h2>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<!-- Сегодня / Месяц -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="mb-3">📅 Сегодня</h5>
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-muted small">Генераций</div>
+                    <h4>{{ today.generations }}</h4>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Затраты API</div>
+                    <h4 class="text-danger">${{ "%.3f"|format(today.api_cost) }}</h4>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Выручка</div>
+                    <h4 class="text-success">${{ "%.3f"|format(today.revenue) }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="mb-3">📆 Этот месяц</h5>
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-muted small">Генераций</div>
+                    <h4>{{ month.generations }}</h4>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Затраты API</div>
+                    <h4 class="text-danger">${{ "%.3f"|format(month.api_cost) }}</h4>
+                </div>
+                <div class="col-4">
+                    <div class="text-muted small">Выручка</div>
+                    <h4 class="text-success">${{ "%.3f"|format(month.revenue) }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Активные модели -->
+<div class="row mt-3">
     <div class="col-md-12">
         <div class="card p-3">
-            <h5>🤖 Активные AI Модели в production:</h5>
+            <h5>🤖 Активные AI Модели</h5>
             <ul class="list-group list-group-flush mt-2">
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <strong>Генерация и редакт. изображений:</strong>
-                    <span class="badge bg-primary fs-6">gemini-3-pro-image-preview</span>
+                    <strong>Генерация изображений:</strong>
+                    <span class="badge bg-primary fs-6">{{ image_model }}</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <strong>Улучшение промптов (LLM):</strong>
-                    <span class="badge bg-success fs-6">gemini-2.0-flash</span>
+                    <strong>Улучшение промптов:</strong>
+                    <span class="badge bg-success fs-6">{{ text_model }}</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <strong>Распознавание голосовых (STT):</strong>
+                    <strong>Распознавание голоса:</strong>
                     <span class="badge bg-info text-dark fs-6">AssemblyAI (Nova-2)</span>
                 </li>
             </ul>
-            <p class="text-muted mt-3 mb-0" style="font-size: 0.9em;">
-                <em>Practice: Эти модели используются для создания бота в связке с Python Telegram Bot v20+ и FastAPI
-                    админкой на базе SQLite.</em>
-            </p>
         </div>
     </div>
 </div>

@@ -191,11 +191,17 @@ async def main():
     # Initialize database
     await database.init_db()
     
-    await asyncio.gather(
-        run_bot(),
-        run_admin()
-    )
+    try:
+        await asyncio.gather(
+            run_bot(),
+            run_admin()
+        )
+    except asyncio.CancelledError:
+        logger.info("Termination signal received.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
