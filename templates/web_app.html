@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroNanoBanana</title>
+  <meta name="description" content="Генерируй потрясающие изображения с помощью ИИ." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍌</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍌</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap&v=2" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #0a0c10;
+      --surface: #161a22;
+      --surface2: #1e2532;
+      --surface3: #262f3f;
+      --border: #2d3748;
+      --border-focus: #3b82f6;
+      --accent: #2b59ff;
+      --accent-hover: #1a44e5;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --muted-light: #64748b;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --r-xl: 16px;
+      --r-lg: 12px;
+      --r-md: 10px;
+      --r-sm: 8px;
+    }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
+    }
+
+    .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; max-width: 500px; margin: 0 auto; width: 100%; padding: 20px; }
+
+    header.topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px 24px; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-name { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+
+    .gen-badge { background: var(--surface2); padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+
+    .nav-tabs { display: flex; gap: 8px; background: var(--surface2); padding: 4px; border-radius: 12px; margin-bottom: 24px; }
+    .tab { flex: 1; text-align: center; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; color: var(--muted); transition: 0.2s; font-size: 0.9rem; white-space: nowrap; }
+    .tab.active { background: var(--accent); color: #fff; }
+
+    .content { flex: 1; display: flex; flex-direction: column; }
+    .panel { display: none; flex-direction: column; gap: 20px; }
+    .panel.active { display: flex; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 20px; }
+    .card-title { font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 16px; text-align: center; }
+
+    .prompt-input {
+      width: 100%; min-height: 120px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--r-lg);
+      color: #fff; font-family: inherit; font-size: 1rem;
+      line-height: 1.5; padding: 16px; resize: none; transition: 0.2s;
+    }
+    .prompt-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(43, 89, 255, 0.2); }
+
+    .btn-gen {
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      cursor: pointer; font-family: inherit; font-size: 1.1rem; font-weight: 700;
+      background: var(--accent); color: #fff; transition: 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-gen:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-gen:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .setting-item { background: var(--surface2); padding: 12px; border-radius: 8px; cursor: pointer; }
+    .setting-lbl { font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 700; }
+    .setting-val { font-weight: 700; color: #fff; }
+
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      background: var(--surface2); padding: 30px 20px;
+      text-align: center; cursor: pointer; display: none; flex-direction: column; gap: 8px;
+    }
+    .upload-zone.visible { display: flex; }
+    .upload-zone:hover { border-color: var(--accent); background: var(--surface3); }
+
+    .result-box { display: none; margin-top: 20px; }
+    .result-box.on { display: block; }
+    .img-cont { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+    .img-cont img { width: 100%; height: auto; display: block; }
+    .btn-dl { position: absolute; bottom: 10px; right: 10px; background: var(--accent); color: #fff; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 1.2rem; }
+
+    .pkg-grid { display: flex; flex-direction: column; gap: 12px; }
+    .pkg { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; }
+    .pkg:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .pkg.hot { border-color: var(--accent); background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%); }
+    .pkg-gens { width: 50px; height: 50px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; color: #fff; }
+    .pkg-info { flex: 1; }
+    .pkg-title { font-weight: 700; color: #fff; }
+    .pkg-sub { font-size: 0.8rem; color: var(--muted); }
+    .pkg-price-tag { font-weight: 800; color: var(--accent); font-size: 1.1rem; }
+
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card { background: var(--surface2); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
+    .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--accent); display: block; }
+    .stat-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-top: 4px; }
+
+    .foot { border-top: 1px solid var(--border); padding: 40px 0; text-align: center; margin-top: auto; }
+    .socials { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+    .social-icon { color: var(--muted); font-size: 1.5rem; text-decoration: none; transition: 0.2s; }
+    .social-icon:hover { color: var(--accent); }
+    .copy { font-size: 0.8rem; color: var(--muted-light); }
+
+    .alert-strip { display: none; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; }
+    .alert-strip.on { display: block; }
+    .alert-strip.err { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); color: var(--error); }
+    .alert-strip.ok { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); }
+
+    .paywall { display: none; text-align: center; padding: 30px 20px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 16px; margin-top: 20px; }
+    .paywall.on { display: block; }
+    .btn-to-shop { background: var(--accent); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; margin-top: 15px; }
+
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-txt { text-align: center; margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
+    .status-txt.err { color: var(--error); }
+    .status-txt.ok { color: var(--success); }
+
+    #modelSelect { width: 100%; background: var(--surface2); color: #fff; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-top: 12px; font-family: inherit; }
+
+    .cookie-banner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border); padding: 15px 20px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .cookie-text { font-size: 0.85rem; color: var(--muted); max-width: 80%; }
+    .cookie-btn { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a class="logo" href="/">
+      <span>🍌</span>
+      <span class="logo-name">NeuroNanoBanana</span>
+    </a>
+    <div class="gen-badge">
+      <span id="genCount">-- ген.</span>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav-tabs">
+    <div class="tab active" id="tab-gen" onclick="switchTab('gen')">Создать</div>
+    <div class="tab" id="tab-shop" onclick="switchTab('shop')">Купить</div>
+    <div class="tab" id="tab-profile" onclick="switchTab('profile')">Профиль</div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="content">
+    <div class="alert-strip" id="alertStrip">
+      <span id="alertMsg"></span>
+    </div>
+
+    <!-- ═══════ GENERATOR PANEL ═══════ -->
+    <div class="panel active" id="panel-gen">
+      <div class="nav-tabs" style="margin-bottom: 15px; border: 1px solid var(--border);">
+        <div class="tab active mode-btn" id="modeBtn-txt2img" onclick="setMode('txt2img')">Текст</div>
+        <div class="tab mode-btn" id="modeBtn-img2img" onclick="setMode('img2img')">Фото</div>
+        <div class="tab mode-btn" id="modeBtn-multi" onclick="setMode('multi')">Микс</div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Генератор</h2>
+        <textarea id="promptInput" class="prompt-input" placeholder="Опишите вашу идею..."></textarea>
+        
+        <div class="settings-grid">
+          <div class="setting-item" onclick="cycleRatio()">
+            <span class="setting-lbl">РАЗМЕР</span>
+            <span id="ratioVal" class="setting-val">⬛ 1:1</span>
+          </div>
+          <div class="setting-item" onclick="cycleQuality()">
+            <span class="setting-lbl">КАЧЕСТВО</span>
+            <span id="qualityVal" class="setting-val">🖥 2K</span>
+          </div>
+        </div>
+
+        <select id="modelSelect">
+          <option value="gemini-3-pro-image-preview">🍌 Banana Pro (Качество)</option>
+          <option value="gemini-3.1-flash-image-preview">⚡ Banana Flash (Скорость)</option>
+          <option value="gemini-2.5-flash-image">🌿 Banana Lite (Лайт)</option>
+        </select>
+      </div>
+
+      <div class="upload-zone" id="zoneImg2img" onclick="document.getElementById('fileSingle').click()">
+        <input type="file" id="fileSingle" accept="image/*" hidden onchange="handleFile(this, 'single')">
+        <span>📸</span>
+        <div class="upload-lbl" id="img2imgLbl">Загрузите опорное фото</div>
+      </div>
+
+      <div class="upload-zone" id="zoneMulti" onclick="document.getElementById('fileMulti').click()">
+        <input type="file" id="fileMulti" accept="image/*" multiple hidden onchange="handleFile(this, 'multi')">
+        <span>🖼️</span>
+        <div class="upload-lbl" id="multiLbl">Загрузите 2–10 фото</div>
+      </div>
+
+      <button id="btnGen" class="btn-gen" onclick="handleGenerate()">
+        <span id="btnTxt">✨ Сгенерировать</span>
+        <div id="spinner" class="spinner"></div>
+      </button>
+
+      <div id="statusTxt" class="status-txt"></div>
+
+      <div id="resultBox" class="result-box">
+        <div class="img-cont">
+          <img id="resultImg" src="" alt="Результат">
+          <a id="dlLink" href="" download="result.png" class="btn-dl">📥</a>
+        </div>
+      </div>
+
+      <div id="paywallBox" class="paywall">
+        <div style="font-size: 2rem;">🍌</div>
+        <h3 style="color:#fff; margin:10px 0;">Лимит исчерпан</h3>
+        <p style="color:var(--muted); font-size:0.9rem;">Хотите еще? Купите пакет генераций в магазине.</p>
+        <button class="btn-to-shop" onclick="switchTab('shop')">В магазин</button>
+      </div>
+    </div>
+
+    <!-- ═══════ PROFILE PANEL ═══════ -->
+    <div class="panel" id="panel-profile">
+      <div class="stat-row">
+        <div class="stat-card">
+          <span class="stat-val" id="profRemaining">–</span>
+          <span class="stat-lbl">Доступно</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-val" id="profTotal">–</span>
+          <span class="stat-lbl">Создано</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3 class="card-title" style="text-align:left; font-size:1rem;">Аккаунт</h3>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span style="color:var(--muted)">Статус:</span>
+          <span id="profStatus" style="font-weight:700">Активен</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--muted)">Истекает:</span>
+          <span id="profExpiry" style="font-weight:700">–</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title" style="text-align:left; font-size:1rem;">Транзакции</h3>
+        <div id="txList" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="copy">Загрузка...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SHOP PANEL ═══════ -->
+    <div class="panel" id="panel-shop">
+      <div class="pkg-grid">
+        <div class="pkg" onclick="buyPackage('single')">
+          <div class="pkg-gens">1</div>
+          <div class="pkg-info">
+            <div class="pkg-title">Один банан</div>
+            <div class="pkg-sub">Тестовая генерация</div>
+          </div>
+          <div class="pkg-price-tag">15 ₽</div>
+        </div>
+        <div class="pkg hot" onclick="buyPackage('starter')">
+          <div class="pkg-gens">10</div>
+          <div class="pkg-info">
+            <div class="pkg-title">Связка бананов</div>
+            <div class="pkg-sub">Популярный выбор</div>
+          </div>
+          <div class="pkg-price-tag">100 ₽</div>
+        </div>
+        <div class="pkg" onclick="buyPackage('standard')">
+          <div class="pkg-gens">50</div>
+          <div class="pkg-info">
+            <div class="pkg-title">Ящик бананов</div>
+            <div class="pkg-sub">Для профи</div>
+          </div>
+          <div class="pkg-price-tag">400 ₽</div>
+        </div>
+        <div class="pkg" onclick="buyPackage('pro')">
+          <div class="pkg-gens">100</div>
+          <div class="pkg-info">
+            <div class="pkg-title">Плантация</div>
+            <div class="pkg-sub">Максимальная выгода</div>
+          </div>
+          <div class="pkg-price-tag">700 ₽</div>
+        </div>
+      </div>
+      <p style="text-align:center; font-size:0.75rem; color:var(--muted); margin-top:20px;">Все оплаты защищены ЮMoney. Генерации зачисляются мгновенно.</p>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="socials">
+      <a href="https://t.me/NanaoBananaBot" class="social-icon">✈️</a>
+      <a href="#" class="social-icon">🌎</a>
+    </div>
+    <div class="copy">&copy; 2026 NeuroNanoBanana. Все права защищены.</div>
+  </footer>
+</div>
+
+<div class="cookie-banner" id="cookieBanner">
+  <div class="cookie-text">Мы используем куки для корректной работы сервиса.</div>
+  <button class="cookie-btn" onclick="document.getElementById('cookieBanner').style.display='none'">Ок</button>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let remaining = {{ remaining | int }};
+  const MAX_DOTS = 3;
+  let selRatio   = '1:1';
+  let selQuality = '2K';
+  let selMode    = 'txt2img';
+  let img2imgData = null;
+  let multiImages = [];
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  (function init() {
+    updateGenBadge();
+    {% if error %}showAlert('{{ error }}', 'err');{% endif %}
+    if (remaining <= 0) showPaywall();
+  })();
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const t = document.getElementById('tab-' + name);
+    const p = document.getElementById('panel-' + name);
+    if(t) t.classList.add('active');
+    if(p) p.classList.add('active');
+    if (name === 'profile') loadProfile();
+  }
+
+  function setMode(mode) {
+    selMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('modeBtn-' + mode).classList.add('active');
+    document.getElementById('zoneImg2img').classList.toggle('visible', mode === 'img2img');
+    document.getElementById('zoneMulti').classList.toggle('visible', mode === 'multi');
+  }
+
+  function handleFile(input, mode) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    if (mode === 'single') {
+      readB64(files[0], b64 => { img2imgData = b64; document.getElementById('img2imgLbl').textContent = '✅ Загружено'; });
+    } else {
+      multiImages = [];
+      files.slice(0, 10).forEach(f => readB64(f, b64 => { multiImages.push(b64); document.getElementById('multiLbl').textContent = '✅ ' + multiImages.length + ' фото'; }));
+    }
+  }
+
+  function readB64(file, cb) {
+    const r = new FileReader();
+    r.onload = e => cb(e.target.result.split(',')[1]);
+    r.readAsDataURL(file);
+  }
+
+  function updateGenBadge() {
+    const el = document.getElementById('genCount');
+    if(el) el.textContent = Math.max(0, remaining) + ' ген.';
+  }
+
+  const RATIOS = [{v:'1:1', l:'⬛ 1:1'}, {v:'16:9', l:'🖥 16:9'}, {v:'9:16', l:'📱 9:16'}, {v:'4:3', l:'📷 4:3'}];
+  const QUALITIES = [{v:'1K', l:'📱 1K'}, {v:'2K', l:'🖥 2K'}, {v:'4K', l:'🎬 4K'}];
+  let rIdx = 0, qIdx = 1;
+
+  function cycleRatio() {
+    rIdx = (rIdx + 1) % RATIOS.length;
+    selRatio = RATIOS[rIdx].v;
+    document.getElementById('ratioVal').textContent = RATIOS[rIdx].l;
+  }
+  function cycleQuality() {
+    qIdx = (qIdx + 1) % QUALITIES.length;
+    selQuality = QUALITIES[qIdx].v;
+    document.getElementById('qualityVal').textContent = QUALITIES[qIdx].l;
+  }
+
+  async function handleGenerate() {
+    const prompt = document.getElementById('promptInput').value.trim();
+    if (!prompt) { setStatus('Введите промпт', 'err'); return; }
+    if (remaining <= 0) { showPaywall(); return; }
+    
+    setLoading(true);
+    const payload = { prompt, mode: selMode, ratio: selRatio, quality: selQuality, model: document.getElementById('modelSelect').value };
+    if (selMode === 'img2img') payload.image_b64 = img2imgData;
+    if (selMode === 'multi') payload.images_b64 = multiImages;
+
+    try {
+      const resp = await fetch('/web-generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await resp.json();
+      if (resp.ok && data.image_b64) {
+        const src = 'data:image/png;base64,' + data.image_b64;
+        document.getElementById('resultImg').src = src;
+        document.getElementById('dlLink').href = src;
+        document.getElementById('resultBox').classList.add('on');
+        remaining = data.remaining;
+        updateGenBadge();
+        setStatus('✅ Готово!', 'ok');
+      } else {
+        setStatus(data.error || 'Ошибка', 'err');
+      }
+    } catch(e) { setStatus('Ошибка сети', 'err'); }
+    finally { setLoading(false); }
+  }
+
+  async function loadProfile() {
+    try {
+      const resp = await fetch('/web-profile');
+      const d = await resp.json();
+      remaining = d.remaining;
+      updateGenBadge();
+      document.getElementById('profRemaining').textContent = d.remaining;
+      document.getElementById('profTotal').textContent = d.total_used;
+      document.getElementById('profStatus').textContent = d.expired ? 'Истек' : 'Активен';
+      document.getElementById('profExpiry').textContent = d.expires_at_fmt || '–';
+      const txEl = document.getElementById('txList');
+      if (d.transactions && d.transactions.length) {
+        txEl.innerHTML = d.transactions.map(tx => `<div style="font-size:0.8rem; border-bottom:1px solid var(--border); padding:5px 0;">${tx.label} — ${tx.amount} ₽ (${tx.status})</div>`).join('');
+      } else {
+        txEl.innerHTML = '<div style="font-size:0.8rem; color:var(--muted)">Нет транзакций</div>';
+      }
+    } catch(e) {}
+  }
+
+  async function buyPackage(pkg) {
+    setStatus('Загрузка...', 'ok');
+    try {
+      const resp = await fetch('/web-buy?package=' + pkg, { method: 'POST' });
+      const data = await resp.json();
+      if (data.payment_url) window.location.href = data.payment_url;
+    } catch(e) {}
+  }
+
+  function setLoading(on) {
+    document.getElementById('btnGen').disabled = on;
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+    document.getElementById('btnTxt').textContent = on ? 'Генерация...' : '✨ Сгенерировать';
+  }
+  function setStatus(msg, type) {
+    const el = document.getElementById('statusTxt');
+    el.textContent = msg; el.className = 'status-txt ' + type;
+  }
+  function showAlert(msg, type) {
+    document.getElementById('alertMsg').textContent = msg;
+    document.getElementById('alertStrip').className = 'alert-strip on ' + type;
+  }
+  function showPaywall() { document.getElementById('paywallBox').classList.add('on'); }
+</script>
+</body>
+</html>

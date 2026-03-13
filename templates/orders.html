@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Заказы - NeuroNanoBanana{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2 class="text-white">🛒 Заказы пользователей (Платежи)</h2>
+    </div>
+</div>
+
+<div class="mb-3">
+    <ul class="nav nav-tabs border-secondary mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if request.query_params.get('show_rejected') != '1' %}active bg-secondary text-white{% else %}text-secondary{% endif %}" href="/admin/orders">Активные</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.query_params.get('show_rejected') == '1' %}active bg-danger text-white{% else %}text-secondary{% endif %}" href="/admin/orders?show_rejected=1">Отклоненные</a>
+        </li>
+    </ul>
+</div>
+
+<div class="card bg-dark text-white border-secondary">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-white-50">Дата</th>
+                        <th class="text-white-50">Order ID</th>
+                        <th class="text-white-50">Пользователь</th>
+                        <th class="text-white-50">Сумма</th>
+                        <th class="text-white-50">Генерации</th>
+                        <th class="text-white-50">Шлюз</th>
+                        <th class="text-white-50">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set show_rejected = request.query_params.get('show_rejected') == '1' %}
+                    {% for tx in transactions %}
+                        {% if (show_rejected and tx.status == 'rejected') or (not show_rejected and tx.status != 'rejected') %}
+                        <tr>
+                            <td><small>{{ tx.created_at }}</small></td>
+                            <td title="{{ tx.order_id }}"><small>{{ tx.order_id[:18] }}{% if tx.order_id|length > 18 %}...{% endif %}</small></td>
+                            <td>
+                                <a href="/admin/users/{{ tx.user_id }}" class="text-decoration-none text-info">
+                                    {{ tx.full_name or tx.username or tx.user_id }}
+                                </a>
+                            </td>
+                            <td>{% if tx.gateway == "stars" %}{{ tx.amount|int }} ⭐{% else %}{{ tx.amount }} ₽{% endif %}</td>
+                            <td>+{{ tx.generations }}</td>
+                            <td>
+                                {% if tx.gateway == 'stars' %}
+                                    <span class="badge bg-warning text-dark">⭐ Stars</span>
+                                {% elif tx.gateway == 'yoomoney' or tx.gateway == 'yookassa' %}
+                                    <span class="badge bg-info text-dark">💳 YooMoney</span>
+                                {% elif tx.gateway == 'yoomoney_web' %}
+                                    <span class="badge bg-info text-dark">🌐 YooMoney Web</span>
+                                {% elif tx.gateway == 'crypto' or tx.gateway == 'nowpayments' %}
+                                    <span class="badge bg-primary">🪙 Crypto</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ tx.gateway }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if tx.status == 'paid' %}
+                                    <span class="badge bg-success">Оплачен</span>
+                                {% elif tx.status == 'rejected' %}
+                                    <span class="badge bg-danger mb-1">Отклонен</span>
+                                    <form action="/admin/orders/{{ tx.order_id }}/restore" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-info py-0" style="font-size: 0.75rem;">Восстановить</button>
+                                    </form>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark mb-1">{{ tx.status }}</span>
+                                    <div class="d-flex gap-1 mt-1">
+                                        <form action="/admin/orders/{{ tx.order_id }}/confirm" method="POST" onsubmit="return confirm('Вы уверены, что хотите подтвердить этот платеж вручную? Зачисления пройдут немедленно.')">
+                                            <button type="submit" class="btn btn-sm btn-outline-success py-0" style="font-size: 0.75rem;">Подтвердить</button>
+                                        </form>
+                                        <form action="/admin/orders/{{ tx.order_id }}/reject" method="POST">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0" style="font-size: 0.75rem;">Скрыть</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-secondary py-4">Список платежей пуст.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

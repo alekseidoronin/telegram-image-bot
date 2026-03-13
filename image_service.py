@@ -2,7 +2,7 @@
 Gemini API: image generation via REST API.
 
 Based on official docs: https://ai.google.dev/gemini-api/docs/image-generation
-Model: gemini-3-pro-image-preview (Nano Banana Pro)
+Model: gemini-3-pro-image-preview (NeuroNanoBanana)
 Supports: imageSize (1K/2K/4K), aspectRatio, multi-image input (up to 14 refs)
 """
 
@@ -174,8 +174,8 @@ async def enhance_prompt(api_key=None, prompt="", text_model=None):
     from config import TEXT_MODEL as DEFAULT_TEXT_MODEL, GEMINI_API_KEY as DEFAULT_API_KEY
     
     # Dynamic settings resolution
-    actual_api_key = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
-    actual_model = text_model or await database.get_setting("TEXT_MODEL", DEFAULT_TEXT_MODEL)
+    actual_api_key = api_key or await database.get_setting("GEMINI_API_KEY")
+    actual_model = text_model or await database.get_setting("TEXT_MODEL")
     
     def _do_enhance():
         endpoint_url = f"https://generativelanguage.googleapis.com/v1beta/models/{actual_model}:generateContent"
@@ -213,26 +213,25 @@ async def enhance_prompt(api_key=None, prompt="", text_model=None):
         return prompt
 
 
-async def text_to_image(api_key, prompt, aspect_ratio="1:1", quality="1K", search=False, **kwargs):
-
+async def text_to_image(api_key, prompt, aspect_ratio="1:1", quality="1K", search=False, image_model=None):
     """Generate image from text prompt."""
     try:
         parts = [{"text": prompt}]
-        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search, **kwargs)
+        images = await _call_api(api_key, parts, aspect_ratio, quality, search=search, image_model=image_model)
         return images[0] if images else None
     except Exception:
         logger.exception("text_to_image failed")
         return None
 
 
-async def image_to_image(api_key=None, image_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, **kwargs):
+async def image_to_image(api_key=None, image_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, image_model=None):
     """Edit an existing image based on prompt."""
     import database
     from config import GEMINI_API_KEY as DEFAULT_API_KEY, IMAGE_MODEL as DEFAULT_IMAGE_MODEL
-    
-    actual_api = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
-    actual_model = await database.get_setting("IMAGE_MODEL", DEFAULT_IMAGE_MODEL)
-    
+
+    actual_api = api_key or await database.get_setting("GEMINI_API_KEY")
+    actual_model = image_model or await database.get_setting("IMAGE_MODEL")
+
     try:
         parts = [
             _image_part(image_bytes),
@@ -245,21 +244,21 @@ async def image_to_image(api_key=None, image_bytes=None, prompt="", aspect_ratio
                 "Only change what was requested. Do not regenerate the photo from scratch."
             )},
         ]
-        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model, **kwargs)
+        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model)
         return images[0] if images else None
     except Exception:
         logger.exception("image_to_image failed")
         return None
 
 
-async def multi_image(api_key=None, images_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, **kwargs):
+async def multi_image(api_key=None, images_bytes=None, prompt="", aspect_ratio="1:1", quality="1K", search=False, image_model=None):
     """Combine multiple images (2-14) based on prompt."""
     import database
     from config import GEMINI_API_KEY as DEFAULT_API_KEY, IMAGE_MODEL as DEFAULT_IMAGE_MODEL
-    
-    actual_api = api_key or await database.get_setting("GEMINI_API_KEY", DEFAULT_API_KEY)
-    actual_model = await database.get_setting("IMAGE_MODEL", DEFAULT_IMAGE_MODEL)
-    
+
+    actual_api = api_key or await database.get_setting("GEMINI_API_KEY")
+    actual_model = image_model or await database.get_setting("IMAGE_MODEL")
+
     try:
         parts = [
             {"text": (
@@ -270,7 +269,7 @@ async def multi_image(api_key=None, images_bytes=None, prompt="", aspect_ratio="
         for img_bytes in images_bytes:
             parts.append(_image_part(img_bytes))
 
-        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model, **kwargs)
+        images = await _call_api(actual_api, parts, aspect_ratio, quality, search=search, image_model=actual_model)
         return images[0] if images else None
     except Exception:
         logger.exception("multi_image failed")

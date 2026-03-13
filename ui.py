@@ -30,9 +30,9 @@ PROGRESS_FRAMES = [
 ]
 
 ESTIMATED_TIMES = {
-    "1K": 35,
-    "2K": 50,
-    "4K": 120,
+    "1K": 18,
+    "2K": 25,
+    "4K": 60,
 }
 
 
@@ -91,11 +91,16 @@ def settings_line(context):
     ratio = context.user_data.get("aspect_ratio", "")
     quality = context.user_data.get("quality", "")
     search = context.user_data.get("search", False)
+    image_model = context.user_data.get("image_model", "")
     
     icon = MODE_ICONS.get(mode, "")
     parts = []
     if mode:
         parts.append(icon + " " + t("label_" + mode, lang))
+    if image_model:
+        from config import MODEL_LABELS_GEN
+        mod_label = MODEL_LABELS_GEN.get(image_model, image_model)
+        parts.append("🤖 " + mod_label)
     if ratio:
         parts.append("📐 " + ratio)
     if quality:
@@ -144,6 +149,10 @@ def photo_count_text(count, lang="ru"):
         return t("photo_count_need", lang, count=count, need=2-count)
     else:
         return t("photo_count_ok", lang, count=count)
+
+def model_header(context):
+    lang = get_lang(context)
+    return t("model_header", lang)
 
 def prompt_confirm_text(prompt, context):
     lang = get_lang(context)

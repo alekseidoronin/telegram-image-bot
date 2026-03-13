@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>💰 Настройка цен</h2>
+<div class="card mt-4">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Качество</th>
+                <th>Себестоимость (API)</th>
+                <th>Цена продажи</th>
+                <th>Обновлено</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pricing %}
+            <tr>
+                <td>{{ p.quality }}</td>
+                <form action="/admin/pricing/{{ p.id }}" method="post">
+                    <td>
+                        <input type="number" step="0.001" name="api_cost" value="{{ p.api_cost }}"
+                            class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" name="sale_price" value="{{ p.sale_price }}"
+                            class="form-control form-control-sm">
+                    </td>
+                    <td><small>{{ p.updated_at[:16] }}</small></td>
+                    <td>
+                        <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+                    </td>
+                </form>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

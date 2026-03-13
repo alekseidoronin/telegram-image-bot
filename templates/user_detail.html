@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ user_data.full_name }} - Nano Banana Admin{% endblock %}
+{% block title %}{{ user_data.full_name }} - NeuroNanoBanana Admin{% endblock %}
 
 {% block content %}
 <div class="mb-3">
@@ -10,7 +10,12 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-0">{{ user_data.full_name or 'Без имени' }}</h2>
-        <p class="text-muted mb-0">ID: <code>{{ user_data.telegram_id }}</code> | @{{ user_data.username or '—' }}</p>
+        <p class="text-muted mb-0">
+            Telegram ID: <code>{{ user_data.telegram_id }}</code> | @{{ user_data.username or '—' }}
+        </p>
+        <p class="text-muted mb-0">
+            Chat ID: <code>{{ user_data.telegram_id }}</code>
+        </p>
     </div>
     <form action="/admin/users/{{ user_data.telegram_id }}/delete" method="post"
         onsubmit="return confirm('Удалить пользователя и ВСЕ его данные? Это необратимо.')">
@@ -37,7 +42,6 @@
                             class="form-control form-control-sm" min="-1">
                         <button type="submit" class="btn btn-sm btn-light">OK</button>
                     </div>
-                    <div class="form-text text-white-50">-1 = безлимит</div>
                 </form>
             </div>
         </div>
@@ -83,13 +87,15 @@
     <div class="col-md-4">
         <div class="card p-3 text-center">
             <div class="text-muted small">Последняя активность</div>
-            <h5 class="mb-0">{{ user_data.last_active[:16].replace('T', ' ') if user_data.last_active else 'Нет данных' }}</h5>
+            <h5 class="mb-0">{{ user_data.last_active[:16].replace('T', ' ') if user_data.last_active else 'Нет данных'
+                }}</h5>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card p-3 text-center">
             <div class="text-muted small">Зарегистрирован</div>
-            <h5 class="mb-0">{{ user_data.created_at[:16].replace('T', ' ') if user_data.created_at else 'Нет данных' }}</h5>
+            <h5 class="mb-0">{{ user_data.created_at[:16].replace('T', ' ') if user_data.created_at else 'Нет данных' }}
+            </h5>
         </div>
     </div>
 </div>
@@ -105,6 +111,7 @@
                     <th>Формат</th>
                     <th>Промпт</th>
                     <th>Статус</th>
+                    <th>Кредиты</th>
                     <th>Стоимость</th>
                 </tr>
             </thead>
@@ -123,11 +130,12 @@
                             {{ "OK" if gen.success else "Err" }}
                         </span>
                     </td>
+                    <td><span class="badge bg-primary">{{ 2 if gen.quality == '4K' else 1 }}</span></td>
                     <td>${{ "%.3f"|format(gen.api_cost|float) }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">Нет генераций</td>
+                    <td colspan="7" class="text-center text-muted py-4">Нет генераций</td>
                 </tr>
                 {% endfor %}
             </tbody>

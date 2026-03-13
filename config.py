@@ -9,9 +9,13 @@ load_dotenv()
 
 # ── API Keys ─────────────────────────────────────────────────────────────────
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-ASSEMBLYAI_KEY = os.getenv("ASSEMBLYAI_KEY", "")
+TELEGRAM_BOT_TOKEN = ""
+GEMINI_API_KEY = ""
+ASSEMBLYAI_KEY = ""
+YOOMONEY_WALLET = os.getenv("YOOMONEY_WALLET", "")
+YOOMONEY_SECRET = os.getenv("YOOMONEY_SECRET", "")
+NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY", "")
+NOWPAYMENTS_IPN_SECRET = os.getenv("NOWPAYMENTS_IPN_SECRET", "")
 
 # Note: These are fallback values. The bot will prefer values from the database
 # if they are set in the Admin Dashboard.
@@ -20,14 +24,19 @@ ASSEMBLYAI_KEY = os.getenv("ASSEMBLYAI_KEY", "")
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_PORT = int(os.getenv("ADMIN_PORT", "8080"))
-ADMIN_URL = os.getenv("ADMIN_URL", "http://144.217.12.20:8080")
+ADMIN_URL = os.getenv("ADMIN_URL", "https://NeuroNanoBanana.duckdns.org")
 ADMIN_ID = 632600126
 DEFAULT_TOTAL_LIMIT = 7
 
+# ── Force Sub Settings ───────────────────────────────────────────────────────
+REQUIRED_CHANNEL = os.getenv("REQUIRED_CHANNEL", "@Doronin_Al")
+CHANNEL_LINK = os.getenv("CHANNEL_LINK", "https://t.me/Doronin_Al")
+CHANNEL_NAME = os.getenv("CHANNEL_NAME", "Doronin_Al")
+
 # ── Models ───────────────────────────────────────────────────────────────────
 
-IMAGE_MODEL = "gemini-3-pro-image-preview"
-TEXT_MODEL = "gemini-1.5-flash"
+IMAGE_MODEL = ""
+TEXT_MODEL = ""
 API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
     + IMAGE_MODEL
@@ -101,3 +110,18 @@ QUALITY_ICONS = {
 
 MAX_REFERENCE_IMAGES = 14
 MAX_RETRIES = 2
+
+# ── Model Selection ──────────────────────────────────────────────────────────
+
+SET_MODEL_PREFIX = "set_model_"
+MODEL_BANANA_PRO = "gemini-3-pro-image-preview"
+MODEL_BANANA_2   = "gemini-3.1-flash-image-preview"
+MODEL_BANANA     = "gemini-2.5-flash-image"
+
+MODEL_LABELS_GEN = {
+    MODEL_BANANA_PRO: "🍌 Nano Banana Pro",
+    MODEL_BANANA_2:   "⚡ Nano Banana 2",
+    MODEL_BANANA:     "🌿 Nano Banana",
+}
+
+CHOOSE_MODEL_TYPE = 10  # extra conversation state for model picker

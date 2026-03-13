@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NeuroNanoBanana Admin{% endblock %}</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍌</text></svg>">
+    <title>{% block title %}Nano Banana Admin{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -46,17 +45,12 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-2 sidebar d-none d-md-block">
-                <h4 class="text-white text-center mb-4">NeuroNanoBanana</h4>
+                <h4 class="text-white text-center mb-4">Nano Banana</h4>
                 <a href="/admin" class="{% if page == 'dashboard' %}active{% endif %}">📊 Дашборд</a>
                 <a href="/admin/users" class="{% if page == 'users' %}active{% endif %}">👥 Пользователи</a>
                 <a href="/admin/pricing" class="{% if page == 'pricing' %}active{% endif %}">💰 Цены</a>
-                <a href="/admin/orders" class="{% if page == 'orders' %}active{% endif %}">🛒 Заказы</a>
                 <a href="/admin/settings" class="{% if page == 'settings' %}active{% endif %}">⚙️ Настройки</a>
                 <hr class="text-white">
-                <form action="/admin/restart" method="post" class="p-3"
-                    onsubmit="return confirm('Вы уверены? Бот будет недоступен 10-20 секунд.')">
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">🔄 Перезапустить бота</button>
-                </form>
                 <a href="/logout">🚪 Выйти</a>
             </div>
             <div class="col-md-10 content">
@@ -64,6 +58,15 @@
             </div>
         </div>
     </div>
+
+    <script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('ID скопирован: ' + text);
+        });
+    }
+    </script>
+    
 </body>
 
 </html>

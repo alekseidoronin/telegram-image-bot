@@ -29,7 +29,6 @@ def mode_keyboard(lang="ru", is_admin=False):
         [InlineKeyboardButton(t("btn_txt2img", lang), callback_data=MODE_TXT2IMG)],
         [InlineKeyboardButton(t("btn_img2img", lang), callback_data=MODE_IMG2IMG)],
         [InlineKeyboardButton(t("btn_multi", lang), callback_data=MODE_MULTI)],
-        [InlineKeyboardButton(t("btn_language", lang), callback_data="btn_language")],
     ]
     if is_admin:
         # Standard URL button because Mini App requires HTTPS
@@ -110,6 +109,60 @@ def done_photos_keyboard(count, lang="ru"):
 
 def language_keyboard(lang="ru"):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🇷🇺 Русский", callback_data="setlang_ru")],
-        [InlineKeyboardButton("🇬🇧 English", callback_data="setlang_en")],
+        [InlineKeyboardButton("🇷🇺 Русский", callback_data="setlang_ru"),
+         InlineKeyboardButton("🇬🇧 English", callback_data="setlang_en")],
+        [InlineKeyboardButton("🇸🇦 العربية", callback_data="setlang_ar"),
+         InlineKeyboardButton("🇫🇷 Français", callback_data="setlang_fr")],
+        [InlineKeyboardButton("🇩🇪 Deutsch", callback_data="setlang_de"),
+         InlineKeyboardButton("🇮🇹 Italiano", callback_data="setlang_it")],
+        [InlineKeyboardButton("🇪🇸 Español", callback_data="setlang_es"),
+         InlineKeyboardButton("🇰🇬 Кыргызча", callback_data="setlang_ky")],
+        [InlineKeyboardButton("🇺🇿 O'zbek", callback_data="setlang_uz"),
+         InlineKeyboardButton("🇧🇾 Беларуская", callback_data="setlang_be")],
+        [InlineKeyboardButton("🇹🇯 Тоҷикӣ", callback_data="setlang_tg"),
+         InlineKeyboardButton("🇹🇲 Türkmen", callback_data="setlang_tk")],
     ])
+
+def buy_keyboard(lang="ru"):
+    # Package format: select_package_{id}_{amount}_{price_rub}
+    # Package IDs: 1, 10, 50, 100
+    # Package amounts match IDs
+    # Prices: 15, 100, 400, 700
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_buy_1", lang), callback_data="select_package_1_1_15")],
+        [InlineKeyboardButton(t("btn_buy_10", lang), callback_data="select_package_10_10_100")],
+        [InlineKeyboardButton(t("btn_buy_50", lang), callback_data="select_package_50_50_400")],
+        [InlineKeyboardButton(t("btn_buy_100", lang), callback_data="select_package_100_100_700")],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)]
+    ])
+
+def profile_keyboard(lang="ru"):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(text="💎 Купить генерации", callback_data="open_packages")],
+        [InlineKeyboardButton(text="📜 Правила сервиса", url='https://neuronanobanana.duckdns.org/oferta')],
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)]
+    ])
+
+def get_gateway_selection_keyboard(package_id, price_rub, stars_price):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(text=f"⭐️ Telegram Stars ({stars_price})", callback_data=f"buy_stars_{package_id}")],
+        [InlineKeyboardButton(text=f"💳 Карта РФ (YooMoney) - {price_rub}₽", callback_data=f"buy_yoomoney_{package_id}")],
+        [InlineKeyboardButton(text=f"🪙 Криптовалюта (NOWPayments)", callback_data=f"buy_crypto_{package_id}")],
+        [InlineKeyboardButton(text="🔙 Назад к пакетам", callback_data="open_packages")],
+        [InlineKeyboardButton(text="📜 Правила сервиса", url='https://neuronanobanana.duckdns.org/oferta')]
+    ])
+
+def model_keyboard(current_model: str, lang: str = "ru"):
+    """Keyboard for selecting image generation model (Nano Banana series)."""
+    from config import SET_MODEL_PREFIX, MODEL_BANANA_PRO, MODEL_BANANA_2, MODEL_BANANA
+    models = [
+        (MODEL_BANANA_PRO, "🍌 Nano Banana Pro (Качество)"),
+        (MODEL_BANANA_2,   "⚡ Nano Banana 2 (Скорость)"),
+        (MODEL_BANANA,     "🌿 Nano Banana (Лайт)"),
+    ]
+    rows = []
+    for model_id, label in models:
+        check = "✅ " if current_model == model_id else ""
+        rows.append([InlineKeyboardButton(check + label, callback_data=SET_MODEL_PREFIX + model_id)])
+    rows.append([InlineKeyboardButton("🔙 Назад" if lang == "ru" else "🔙 Back", callback_data=ACTION_MENU)])
+    return InlineKeyboardMarkup(rows)

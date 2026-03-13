@@ -5,6 +5,18 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - .:/app
       - ./bot_database.db:/app/bot_database.db
-    env_file:
-      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.telegram-bot.rule=Host(`neuronanobanana.duckdns.org`)"
+      - "traefik.http.routers.telegram-bot.entrypoints=websecure"
+      - "traefik.http.routers.telegram-bot.tls=true"
+      - "traefik.http.routers.telegram-bot.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.telegram-bot.loadbalancer.server.port=8080"
+    networks:
+      - n8n_default
+
+networks:
+  n8n_default:
+    external: true

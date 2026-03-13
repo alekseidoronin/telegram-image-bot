@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Пользователи - Nano Banana Admin{% endblock %}
+{% block title %}Пользователи - NeuroNanoBanana Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">👥 Пользователи</h1>
-    <span class="badge bg-primary fs-6">{{ users|length }} всего</span>
+    <div class="d-flex align-items-center gap-3">
+        <h1 class="h2">👥 Пользователи</h1>
+        <span class="badge bg-primary fs-6">{{ users|length }} всего</span>
+    </div>
 </div>
 
 {% if request.query_params.get('msg') %}
@@ -14,6 +16,39 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
+
+<div class="card card-body mb-3">
+    <h5 class="mb-3">➕ Создать / отредактировать пользователя</h5>
+    <form action="/admin/users/create" method="post" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Telegram ID</label>
+            <input type="number" name="telegram_id" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="@username без @">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Имя</label>
+            <input type="text" name="full_name" class="form-control" placeholder="Отображаемое имя">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Кредиты</label>
+            <input type="number" name="daily_limit" class="form-control" value="0">
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="1" id="createIsAdmin" name="is_admin">
+                <label class="form-check-label" for="createIsAdmin">
+                    Админ
+                </label>
+            </div>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+    </form>
+</div>
 
 <div class="card mt-3">
     <div class="table-responsive">
@@ -32,17 +67,25 @@
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr {% if user.is_blocked %}class="table-danger"{% endif %}>
+                <tr {% if user.is_blocked %}class="table-danger" {% endif %}>
                     <td><code>{{ user.telegram_id }}</code></td>
                     <td>
-                        <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name or 'Без имени' }}</a></strong><br>
+                        <span class="badge {% if user.type == 'TG' %}bg-info text-dark{% else %}bg-secondary{% endif %} mb-1">{{ user.type }}</span><br>
+                        <strong>
+                            {% if user.type == 'TG' %}
+                            <a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name or 'Без имени' }}</a>
+                            {% else %}
+                            {{ user.full_name or 'Web User' }}
+                            {% endif %}
+                        </strong><br>
                         <small class="text-muted">@{{ user.username or '—' }}</small>
                     </td>
                     <td>{{ user.total_count }}</td>
                     <td>
                         <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
-                            <div class="input-group input-group-sm" style="width: 110px;">
-                                <input type="number" name="remaining" value="{{ user.remaining }}" class="form-control" min="-1">
+                            <div class="input-group input-group-sm mb-1" style="width: 110px;">
+                                <input type="number" name="remaining" value="{{ user.remaining }}" class="form-control"
+                                    min="-1">
                                 <button type="submit" class="btn btn-outline-primary">OK</button>
                             </div>
                         </form>
@@ -71,9 +114,13 @@
                         {{ user.last_active[:16].replace('T', ' ') if user.last_active else '—' }}
                     </td>
                     <td>
-                        <a href="/admin/users/{{ user.telegram_id }}" class="btn btn-sm btn-outline-info" title="Детали">📋</a>
-                        <form action="/admin/users/{{ user.telegram_id }}/delete" method="post" class="d-inline"
-                            onsubmit="return confirm('Удалить пользователя {{ user.full_name or user.telegram_id }} и все его данные?')">
+                        <a href="/admin/users/{{ user.telegram_id }}" class="btn btn-sm btn-outline-info"
+                            title="Детали">📋</a>
+                        <form action="{% if user.type == 'TG' %}/admin/users/{{ user.telegram_id }}/delete{% else %}/admin/users/delete_web{% endif %}" method="post" class="d-inline"
+                            onsubmit="return confirm('Удалить {% if user.type == 'TG' %}пользователя{% else %}веб-сессию{% endif %} {{ user.full_name or 'без имени' }}?')">
+                            {% if user.type != 'TG' %}
+                            <input type="hidden" name="token" value="{{ user.token }}">
+                            {% endif %}
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑</button>
                         </form>
                     </td>

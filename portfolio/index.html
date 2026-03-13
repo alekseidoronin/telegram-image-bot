@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Developer Portfolio | Разработчик Python</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="#home" class="logo"><PythonDev /></a>
+            <ul class="nav-links">
+                <li><a href="#about">Обо мне</a></li>
+                <li><a href="#skills">Навыки</a></li>
+                <li><a href="#projects">Проекты</a></li>
+                <li><a href="#contact">Контакты</a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <span class="hero-greeting">Привет, я</span>
+                <h1 class="hero-name">Имя Фамилия</h1>
+                <h2 class="hero-title">Python Developer</h2>
+                <p class="hero-description">
+                    Создаю масштабируемые приложения, Telegram-боты и веб-сервисы.
+                    Специализируюсь на Backend-разработке и автоматизации процессов.
+                </p>
+                <div class="hero-buttons">
+                    <a href="#projects" class="btn btn-primary">Мои проекты</a>
+                    <a href="#contact" class="btn btn-outline">Связаться</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">5+</span>
+                        <span class="stat-label">Лет опыта</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">50+</span>
+                        <span class="stat-label">Проектов</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">30+</span>
+                        <span class="stat-label">Клиентов</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="code-window">
+                    <div class="code-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <pre class="code-content"><code><span class="code-keyword">class</span> <span class="code-class">Developer</span>:
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):
+        self.name = <span class="code-string">"Имя Фамилия"</span>
+        self.skills = [<span class="code-string">"Python"</span>, <span class="code-string">"Django"</span>, <span class="code-string">"FastAPI"</span>]
+        self.passion = <span class="code-string">"Создавать крутые решения"</span>
+    
+    <span class="code-keyword">def</span> <span class="code-function">code</span>(self):
+        <span class="code-keyword">return</span> <span class="code-string">"Инновации"</span>
+    
+    <span class="code-keyword">def</span> <span class="code-function">solve</span>(self, problem):
+        <span class="code-keyword">return</span> <span class="code-string">"Элегантное решение"</span></code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">Обо мне</h2>
+            <div class="about-content">
+                <div class="about-image">
+                    <div class="image-placeholder">
+                        <span>👨‍💻</span>
+                    </div>
+                </div>
+                <div class="about-text">
+                    <h3>Python разработчик с passion к созданию</h3>
+                    <p>
+                        Я — опытный Python-разработник, специализирующийся на создании
+                        высококачественных веб-приложений, Telegram-ботов и систем автоматизации.
+                        Моя цель — помогать бизнесу расти с помощью современных технологий.
+                    </p>
+                    <p>
+                        Работал с различными проектами: от небольших MVP до крупных
+                        корпоративных систем. Постоянно изучаю новые технологии и
+                        применяю best practices в своей работе.
+                    </p>
+                    <div class="about-highlights">
+                        <div class="highlight">
+                            <span class="highlight-icon">🚀</span>
+                            <span>Быстрая разработка</span>
+                        </div>
+                        <div class="highlight">
+                            <span class="highlight-icon">🎯</span>
+                            <span>Точность в сроках</span>
+                        </div>
+                        <div class="highlight">
+                            <span class="highlight-icon">💡</span>
+                            <span>Инновационные решения</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="skills" class="skills">
+        <div class="container">
+            <h2 class="section-title">Технические навыки</h2>
+            <div class="skills-grid">
+                <div class="skill-category">
+                    <h3>Backend</h3>
+                    <div class="skill-items">
+                        <div class="skill-item">
+                            <span class="skill-name">Python</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 95%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Django</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">FastAPI</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Flask</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 80%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>Базы данных</h3>
+                    <div class="skill-items">
+                        <div class="skill-item">
+                            <span class="skill-name">PostgreSQL</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">MongoDB</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Redis</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">SQLAlchemy</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>DevOps & Tools</h3>
+                    <div class="skill-items">
+                        <div class="skill-item">
+                            <span class="skill-name">Docker</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Git</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Linux</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">CI/CD</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3>Дополнительно</h3>
+                    <div class="skill-items">
+                        <div class="skill-item">
+                            <span class="skill-name">Telegram Bot API</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 95%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">REST API</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">GraphQL</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 70%"></div>
+                            </div>
+                        </div>
+                        <div class="skill-item">
+                            <span class="skill-name">Async/Await</span>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tech-stack">
+                <h3>Технологии</h3>
+                <div class="tech-tags">
+                    <span class="tech-tag">Python</span>
+                    <span class="tech-tag">Django</span>
+                    <span class="tech-tag">FastAPI</span>
+                    <span class="tech-tag">Flask</span>
+                    <span class="tech-tag">PostgreSQL</span>
+                    <span class="tech-tag">MongoDB</span>
+                    <span class="tech-tag">Redis</span>
+                    <span class="tech-tag">Docker</span>
+                    <span class="tech-tag">Git</span>
+                    <span class="tech-tag">Linux</span>
+                    <span class="tech-tag">Telegram API</span>
+                    <span class="tech-tag">AI/ML</span>
+                    <span class="tech-tag">Celery</span>
+                    <span class="tech-tag">Nginx</span>
+                    <span class="tech-tag">AWS</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects" class="projects">
+        <div class="container">
+            <h2 class="section-title">Мои проекты</h2>
+            <div class="projects-grid">
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">🤖</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>Telegram Бот для бизнеса</h3>
+                        <p>Многофункциональный Telegram-бот с интеграцией платежей, админ-панелью и системой управления пользователями.</p>
+                        <div class="project-tech">
+                            <span>Python</span>
+                            <span>aiogram</span>
+                            <span>PostgreSQL</span>
+                            <span>Docker</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">🛒</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>Интернет-магазин</h3>
+                        <p>Полнофункциональный e-commerce с корзиной, оплатой, админ-панелью и аналитикой продаж.</p>
+                        <div class="project-tech">
+                            <span>Django</span>
+                            <span>Vue.js</span>
+                            <span>PostgreSQL</span>
+                            <span>Stripe</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">📊</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>CRM система</h3>
+                        <p>Корпоративная CRM для управления клиентами, сделками и автоматизации продаж.</p>
+                        <div class="project-tech">
+                            <span>FastAPI</span>
+                            <span>React</span>
+                            <span>MongoDB</span>
+                            <span>Redis</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">🔗</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>API Gateway</h3>
+                        <p>Микросервисный API шлюз с аутентификацией, rate limiting и мониторингом.</p>
+                        <div class="project-tech">
+                            <span>Python</span>
+                            <span>FastAPI</span>
+                            <span>Docker</span>
+                            <span>Kubernetes</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">🤖</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>AI Chat Assistant</h3>
+                        <p>Чат-бот с интеграцией GPT для автоматизации поддержки клиентов.</p>
+                        <div class="project-tech">
+                            <span>Python</span>
+                            <span>OpenAI API</span>
+                            <span>Telegram</span>
+                            <span>LangChain</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card">
+                    <div class="project-image">
+                        <span class="project-icon">📈</span>
+                    </div>
+                    <div class="project-content">
+                        <h3>Парсер данных</h3>
+                        <p>Автоматизированная система сбора и анализа данных с веб-сайтов.</p>
+                        <div class="project-tech">
+                            <span>Python</span>
+                            <span>Scrapy</span>
+                            <span>Selenium</span>
+                            <span>BeautifulSoup</span>
+                        </div>
+                        <div class="project-links">
+                            <a href="#" class="project-link">GitHub →</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2 class="section-title">Свяжитесь со мной</h2>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <h3>Давайте обсудим ваш проект</h3>
+                    <p>Я всегда открыт для новых проектов и интересных предложений.
+                       Свяжитесь со мной любым удобным способом.</p>
+                    <div class="contact-methods">
+                        <a href="mailto:email@example.com" class="contact-method">
+                            <span class="method-icon">📧</span>
+                            <span class="method-text">email@example.com</span>
+                        </a>
+                        <a href="https://t.me/username" class="contact-method">
+                            <span class="method-icon">✈️</span>
+                            <span class="method-text">@username</span>
+                        </a>
+                        <a href="https://github.com/username" class="contact-method">
+                            <span class="method-icon">🐙</span>
+                            <span class="method-text">GitHub</span>
+                        </a>
+                        <a href="https://linkedin.com/in/username" class="contact-method">
+                            <span class="method-icon">💼</span>
+                            <span class="method-text">LinkedIn</span>
+                        </a>
+                    </div>
+                </div>
+                <form class="contact-form">
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="Ваше имя" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="subject" placeholder="Тема" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea name="message" placeholder="Сообщение" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить сообщение</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Python Developer. Все права защищены.</p>
+            <div class="footer-links">
+                <a href="#home">Главная</a>
+                <a href="#about">Обо мне</a>
+                <a href="#projects">Проекты</a>
+                <a href="#contact">Контакты</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+
+        hamburger.addEventListener('click', function() {
+            navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        });
+
+        // Close mobile menu on link click
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                hamburger.classList.remove('active');
+            });
+        });
+
+        // Animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.project-card, .skill-category, .about-content').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

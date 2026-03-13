@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>📊 Дашборд</h2>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Всего пользователей</h5>
+            <h2 class="text-primary">{{ stats.total_users }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Всего генераций</h5>
+            <h2 class="text-success">{{ stats.total_generations }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <h5>Общие затраты (API)</h5>
+            <h2 class="text-danger">${{ "%.2f"|format(stats.total_cost) }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card p-3">
+            <h5>🤖 Активные AI Модели в production:</h5>
+            <ul class="list-group list-group-flush mt-2">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Генерация и редакт. изображений:</strong>
+                    <span class="badge bg-primary fs-6">gemini-3-pro-image-preview</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Улучшение промптов (LLM):</strong>
+                    <span class="badge bg-success fs-6">gemini-2.0-flash</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Распознавание голосовых (STT):</strong>
+                    <span class="badge bg-info text-dark fs-6">AssemblyAI (Nova-2)</span>
+                </li>
+            </ul>
+            <p class="text-muted mt-3 mb-0" style="font-size: 0.9em;">
+                <em>Practice: Эти модели используются для создания бота в связке с Python Telegram Bot v20+ и FastAPI
+                    админкой на базе SQLite.</em>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

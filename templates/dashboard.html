@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Дашборд - Nano Banana Admin{% endblock %}
+{% block title %}Дашборд - NeuroNanoBanana Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -93,4 +93,89 @@
         </div>
     </div>
 </div>
+<!-- Invite Tokens -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card p-3">
+            <h5>🔗 Одноразовые ссылки (Web-доступ)</h5>
+            <p class="text-muted small mt-1 mb-3">Генерируй персональные ссылки на сайт. Каждая даёт 3 бесплатные генерации.</p>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Срок действия (часов):</label>
+                    <input type="number" id="inviteHours" class="form-control" value="48" min="1" max="720" />
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-primary w-100" id="btnCreateInvite" onclick="createInvite()">➕ Создать ссылку</button>
+                </div>
+            </div>
+            <div id="inviteResult" class="d-none">
+                <div class="alert alert-success mb-2 shadow-sm">
+                    <strong>Ссылка создана!</strong><br/>
+                    <code id="inviteUrl" style="word-break:break-all; font-size: 1.1rem; display: block; margin: 10px 0; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px;"></code>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyInvite()">📋 Скопировать</button>
+            </div>
+            <hr/>
+            <div id="inviteList">
+                <button class="btn btn-sm btn-outline-secondary" onclick="loadInvites()">📄 Показать все токены</button>
+                <div id="inviteTableWrap" class="mt-2 d-none">
+                    <table class="table table-sm table-bordered mt-2" id="inviteTable">
+                        <thead><tr>
+                            <th>Токен</th><th>Использован</th><th>Осталось ген.</th><th>Истекает</th><th>IP</th>
+                        </tr></thead>
+                        <tbody id="inviteTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function createInvite() {
+    const hours = document.getElementById('inviteHours').value || 48;
+    const btn = document.getElementById('btnCreateInvite');
+    btn.disabled = true; btn.textContent = 'Создаю...';
+    try {
+        const resp = await fetch(`/admin/invite/create?hours=${hours}`, { method: 'POST' });
+        const data = await resp.json();
+        if (data.invite_url) {
+            document.getElementById('inviteUrl').textContent = data.invite_url;
+            document.getElementById('inviteResult').classList.remove('d-none');
+        } else {
+            alert('Ошибка: ' + (data.error || JSON.stringify(data)));
+        }
+    } catch(e) { alert('Ошибка сети'); }
+    finally { btn.disabled = false; btn.textContent = '➕ Создать ссылку'; }
+}
+function copyInvite() {
+    const txt = document.getElementById('inviteUrl').textContent;
+    navigator.clipboard.writeText(txt).then(() => alert('Скопировано!'));
+}
+async function loadInvites() {
+    const wrap = document.getElementById('inviteTableWrap');
+    const body = document.getElementById('inviteTableBody');
+    wrap.classList.remove('d-none');
+    body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Загрузка...</td></tr>';
+    try {
+        const resp = await fetch('/admin/invite/list');
+        const data = await resp.json();
+        if (!data.tokens || data.tokens.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Нет токенов</td></tr>';
+            return;
+        }
+        body.innerHTML = data.tokens.map(t => `
+            <tr>
+                <td><code style="font-size:.75rem">${t.token.substring(0,10)}…</code></td>
+                <td>${t.is_used ? '<span class="badge bg-warning">Да</span>' : '<span class="badge bg-success">Нет</span>'}</td>
+                <td><strong>${t.generations_left}</strong></td>
+                <td style="font-size:.78rem">${t.expires_at.replace('T', ' ').substring(0,16)}</td>
+                <td style="font-size:.78rem">${t.ip_address || '—'}</td>
+            </tr>
+        `).join('');
+    } catch(e) { body.innerHTML = '<tr><td colspan="5" class="text-danger">Ошибка загрузки</td></tr>'; }
+}
+</script>
+
 {% endblock %}
+

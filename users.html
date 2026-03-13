@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>👥 Пользователи</h2>
+<div class="card mt-4">
+    
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text bg-white">🔍</span>
+            <input type="text" id="userSearch" class="form-control" placeholder="Поиск по ID, имени или @username...">
+        </div>
+    </div>
+</div>
+<div class="table-responsive">
+<table class="table table-hover id=\"usersTable\">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Всего</th>
+                <th>Осталось</th>
+                <th>Админ</th>
+                <th>Блок</th>
+                <th>Активен</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td><code class="user-id" style="cursor:pointer;" onclick="copyToClipboard('{{ user.token if user.type == 'WEB' else user.telegram_id }}')" title="Click to copy">{{ user.telegram_id }}</code></td>
+                <td>
+                    <strong><a href="/admin/users/{{ user.telegram_id }}">{{ user.full_name }}</a></strong>
+                    {% if user.type == 'WEB' %}<span class="badge bg-dark text-white ml-1">WEB</span>{% endif %}<br>
+                    <small class="text-muted">@{{ user.username or '-' }}</small>
+                </td>
+                <td>{{ user.total_count }}</td>
+                <td>
+                    <form action="/admin/users/{{ user.telegram_id }}/limit" method="post" class="d-inline">
+                        <input type="number" name="remaining" value="{{ user.remaining }}" style="width: 60px;" min="0">
+                        <button type="submit" class="btn btn-sm btn-outline-info">OK</button>
+                    </form>
+                </td>
+                <td>
+                    <span class="badge {% if user.is_admin_bool %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ "Админ" if user.is_admin_bool else "Юзер" }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge {% if user.is_blocked %}bg-danger{% else %}bg-success{% endif %}">
+                        {{ "Да" if user.is_blocked else "Нет" }}
+                    </span>
+                </td>
+                <td>{{ user.last_active[:16].replace('T', ' ') if user.last_active else '-' }}</td>
+                <td>
+                    {% if user.type == 'WEB' %}
+                    <form action="/admin/users/delete_web" method="post" class="d-inline" onsubmit="return confirm('Удалить эту веб-сессию?')">
+                        <input type="hidden" name="token" value="{{ user.token }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                    </form>
+                    {% else %}
+                    <form action="/admin/users/{{ user.telegram_id }}/admin" method="post" class="d-inline">
+                        <input type="hidden" name="admin" value="{{ '0' if user.is_admin_bool else '1' }}">
+                        <button type="submit"
+                            class="btn btn-sm {% if user.is_admin_bool %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}">
+                            {{ "Разжаловать" if user.is_admin_bool else "Назначить админом" }}
+                        </button>
+                    </form>
+                    <form action="/admin/users/{{ user.telegram_id }}/block" method="post" class="d-inline">
+                        <input type="hidden" name="blocked" value="{{ '0' if user.is_blocked else '1' }}">
+                        <button type="submit"
+                            class="btn btn-sm {% if user.is_blocked %}btn-success{% else %}btn-danger{% endif %}">
+                            {{ "Разблочить" if user.is_blocked else "Заблочить" }}
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+
+<script>
+document.getElementById('userSearch').addEventListener('keyup', function() {
+    const q = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+});
+</script>
+
+{% endblock %}
