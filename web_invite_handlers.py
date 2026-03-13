@@ -70,6 +70,18 @@ async def handle_web_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ <b>Некорректный Email.</b> Пожалуйста, попробуйте еще раз или нажмите /cancel.")
         return AWAITING_WEB_EMAIL
 
+    # Check if this email was already used before
+    if await database.is_email_used(email):
+        await update.message.reply_text(
+            "⚠️ <b>Этот email уже использовался для получения доступа.</b>\n"
+            "Проверьте почту (включая спам) или используйте ранее высланную ссылку.",
+            parse_mode=ParseMode.HTML,
+        )
+        return ConversationHandler.END
+
+    # Mark email as used
+    await database.mark_email_used(email)
+
     # Save request
     username = f"@{user.username}" if user.username else str(user.id)
     await database.create_web_request(user.id, username, email=email)

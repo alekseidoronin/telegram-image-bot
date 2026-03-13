@@ -521,6 +521,15 @@ async def request_access(request: Request):
         if not email or "@" not in email:
             return JSONResponse(status_code=400, content={"error": "Некорректный email"})
 
+        # Prevent re-use of the same email
+        if await database.is_email_used(email):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Этот email уже использовался. Проверьте почту — ссылка уже была отправлена."},
+            )
+
+        await database.mark_email_used(email)
+
         # Notify admin
         if hasattr(request.app.state, 'bot_app'):
             from config import ADMIN_ID

@@ -68,6 +68,13 @@ async def init_db():
         ''')
 
         await db.execute('''
+            CREATE TABLE IF NOT EXISTS EmailAccessLog (
+                email TEXT PRIMARY KEY,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        await db.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
                 order_id TEXT PRIMARY KEY,
                 user_id INTEGER,
@@ -572,6 +579,32 @@ async def get_all_invite_tokens(limit: int = 100):
             'SELECT * FROM invite_tokens ORDER BY created_at DESC LIMIT ?', (limit,)
         ) as cursor:
             return await cursor.fetchall()
+
+
+# ── Email Access Log ────────────────────────────────────────────────────────────
+
+async def is_email_used(email: str) -> bool:
+    """Return True if this email has already been used to request web access."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            'SELECT 1 FROM EmailAccessLog WHERE email = ? LIMIT 1', (email.lower(),)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row is not None
+
+
+async def mark_email_used(email: str):
+    """Mark email as used in EmailAccessLog (idempotent)."""
+    normalized = email.lower()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            '''
+            INSERT OR IGNORE INTO EmailAccessLog (email)
+            VALUES (?)
+            ''',
+            (normalized,),
+        )
+        await db.commit()
 
 # ── Web Sessions ─────────────────────────────────────────────────────────────
 
