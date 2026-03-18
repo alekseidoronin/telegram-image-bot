@@ -54,6 +54,8 @@ from config import (
     MAX_REFERENCE_IMAGES,
     MODEL_BANANA_PRO,
     CHOOSE_MODEL_TYPE,
+    QUALITY_ICONS,
+    ACTION_MENU,
 )
 from keyboards import (
     mode_keyboard,
@@ -174,15 +176,43 @@ async def start(update, context):
     context.user_data.clear()
     context.user_data["lang"] = lang
     legal_text = "\n\nПродолжая работу с ботом, вы принимаете условия <a href='https://neuronanobanana.duckdns.org/oferta'>Публичной оферты</a> и <a href='https://neuronanobanana.duckdns.org/privacy'>Политики конфиденциальности</a>."
-    text = ui.welcome_text(lang) + legal_text
-    is_admin = await database.is_user_admin(user.id)
-    markup = mode_keyboard(lang, is_admin=is_admin)
+    
+    # Первый шаг: выбор модели (Standard vs Pro) с прозрачной стоимостью в кредитах
+    if lang == "ru":
+        text = (
+            "🍌 <b>NeuroNanoBanana</b>\n"
+            "Сначала выбери модель генерации, а затем режим.\n\n"
+            "🍌 <b>Nanao Banana (Standard)</b>\n"
+            "— Дешевле и быстрее.\n"
+            "— 1K / 2K = <b>1 кредит</b>, 4K = <b>2 кредита</b>.\n\n"
+            "💎 <b>Nanao Banana Pro</b>\n"
+            "— Больше деталей и качества.\n"
+            "— 1K / 2K = <b>3 кредита</b>, 4K = <b>6 кредитов</b>.\n"
+            + legal_text
+        )
+    else:
+        text = (
+            "🍌 <b>NeuroNanoBanana</b>\n"
+            "First, choose a model, then a mode.\n\n"
+            "🍌 <b>Nanao Banana (Standard)</b>\n"
+            "— Cheaper and faster.\n"
+            "— 1K / 2K = <b>1 credit</b>, 4K = <b>2 credits</b>.\n\n"
+            "💎 <b>Nanao Banana Pro</b>\n"
+            "— More detail and quality.\n"
+            "— 1K / 2K = <b>3 credits</b>, 4K = <b>6 credits</b>.\n"
+            + legal_text
+        )
+
+    from keyboards import model_keyboard
+    # У пользователя пока нет выбранной модели — просто передаём пустую строку
+    markup = model_keyboard("", lang)
+
     if update.message:
         await update.message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
     elif update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
-    return CHOOSE_MODE
+    return CHOOSE_MODEL_TYPE
 
 
 async def go_menu(update, context):
@@ -202,12 +232,29 @@ async def go_menu(update, context):
     context.user_data.clear()
     context.user_data["lang"] = lang
     legal_text = "\n\nПродолжая работу с ботом, вы принимаете условия <a href='https://neuronanobanana.duckdns.org/oferta'>Публичной оферты</a> и <a href='https://neuronanobanana.duckdns.org/privacy'>Политики конфиденциальности</a>."
+    
+    if lang == "ru":
+        text = (
+            "🍌 <b>NeuroNanoBanana</b>\n"
+            "Сначала выбери модель генерации, а затем режим.\n"
+            + legal_text
+        )
+    else:
+        text = (
+            "🍌 <b>NeuroNanoBanana</b>\n"
+            "First choose a model, then a mode.\n"
+            + legal_text
+        )
+
+    from keyboards import model_keyboard
+    markup = model_keyboard("", lang)
+
     await query.edit_message_text(
-        ui.welcome_text(lang) + legal_text,
-        reply_markup=mode_keyboard(lang, is_admin=is_admin),
+        text,
+        reply_markup=markup,
         parse_mode=ParseMode.HTML
     )
-    return CHOOSE_MODE
+    return CHOOSE_MODEL_TYPE
 
 
 async def mode_chosen(update, context):
@@ -220,7 +267,8 @@ async def mode_chosen(update, context):
     balance = user['daily_limit'] if user else 0
     lang = context.user_data.get("lang", "ru")
     
-    if not is_admin and balance < 1:
+    # -1 означает безлимит, админы тоже без ограничений
+    if not is_admin and balance != -1 and balance < 1:
         await query.answer()
         # Reply with a new message with the buy buttons so they can purchase directly
         await query.message.reply_text(
@@ -247,10 +295,44 @@ async def ratio_chosen(update, context):
     ratio = query.data.replace(RATIO_PREFIX, "")
     context.user_data["aspect_ratio"] = ratio
     lang = context.user_data.get("lang", "ru")
-    text = ui.quality_header(context) + "\n\n" + t("cost_warning", lang)
+
+    # Определяем модель, чтобы посчитать стоимость в кредитах
+    from image_service import get_deduction_amount
+    db_model = await database.get_setting("IMAGE_MODEL")
+    image_model = context.user_data.get("image_model") or db_model or "gemini-3.1-flash-image-preview"
+
+    c1 = get_deduction_amount(image_model, "1K")
+    c2 = get_deduction_amount(image_model, "2K")
+    c4 = get_deduction_amount(image_model, "4K")
+
+    buttons = [
+        InlineKeyboardButton(f"{QUALITY_ICONS.get('1K', '📱')} 1K", callback_data=QUALITY_PREFIX + "1K"),
+        InlineKeyboardButton(f"{QUALITY_ICONS.get('2K', '🖥')} 2K", callback_data=QUALITY_PREFIX + "2K"),
+        InlineKeyboardButton(f"{QUALITY_ICONS.get('4K', '🎬')} 4K", callback_data=QUALITY_PREFIX + "4K"),
+    ]
+
+    text = ui.quality_header(context)
+    if lang == "ru":
+        text += (
+            "\n\n💡 Стоимость для текущей модели:\n"
+            f"• 1K / 2K — <b>{c1}</b> кред.\n"
+            f"• 4K — <b>{c4}</b> кред."
+        )
+    else:
+        text += (
+            "\n\n💡 Credits for current model:\n"
+            f"• 1K / 2K — <b>{c1}</b> cr.\n"
+            f"• 4K — <b>{c4}</b> cr."
+        )
+
+    markup = InlineKeyboardMarkup([
+        buttons,
+        [InlineKeyboardButton(t("btn_menu", lang), callback_data=ACTION_MENU)],
+    ])
+
     await query.edit_message_text(
         text,
-        reply_markup=quality_keyboard(lang),
+        reply_markup=markup,
         parse_mode=ParseMode.HTML
     )
     return CHOOSE_QUALITY
@@ -537,11 +619,25 @@ async def generate_handler(update, context):
     balance = user['daily_limit'] if user else 0
     
     quality = context.user_data.get("quality", "1K")
-    cost_gens = 2 if quality == "4K" else 1
+    
+    # Determine which model will be used (per-user override or global setting)
+    selected_model = context.user_data.get("image_model")
+    db_model = await database.get_setting("IMAGE_MODEL")
+    image_model_effective = selected_model or db_model or "gemini-3.1-flash-image-preview"
 
-    if not is_admin and balance < cost_gens:
+    from image_service import get_deduction_amount, get_real_api_cost
+    cost_credits = get_deduction_amount(image_model_effective, quality)
+    
+    # Если админ или безлимит (-1), лимиты не проверяем
+    if not is_admin and balance != -1 and balance < cost_credits:
+        extra_tip = (
+            "\n\n⚠️ Pro режим требует 3 кредита за 1K/2K и 6 кредитов за 4K. "
+            "Переключитесь на стандартный 🍌 Nano Banana (1 кредит) или пополните баланс."
+            if "pro" in image_model_effective.lower()
+            else ""
+        )
         await query.message.reply_text(
-            t("limit_exceeded", lang),
+            t("limit_exceeded", lang) + extra_tip,
             reply_markup=buy_keyboard(lang)
         )
         return CHOOSE_MODE
@@ -568,7 +664,8 @@ async def generate_handler(update, context):
 
     # Fetch settings from DB
     api_key = await database.get_setting("GEMINI_API_KEY")
-    image_model = await database.get_setting("IMAGE_MODEL")
+    # Reuse the effective model determined above (per-user or global)
+    image_model = image_model_effective
     text_model = await database.get_setting("TEXT_MODEL")
 
     # Generate
@@ -645,13 +742,25 @@ async def generate_handler(update, context):
 
     # Log generation
     success_status = 1 if result else 0
+    
+    real_api_cost = 0.0
+    if success_status:
+        real_api_cost = get_real_api_cost(image_model, quality)
+    
     await database.log_generation(
-        user_id, mode, quality, ratio, prompt, success=success_status, embedding=embedding
+        user_id,
+        mode,
+        quality,
+        ratio,
+        prompt,
+        success=success_status,
+        embedding=embedding,
+        api_cost=real_api_cost,
     )
     
     # Decrease balance if successful
     if success_status:
-        await database.decrease_user_balance(user_id, amount=cost_gens)
+        await database.decrease_user_balance(user_id, amount=cost_credits)
 
     context.user_data.clear()
     return CHOOSE_MODE
@@ -805,11 +914,14 @@ async def cancel(update, context):
     lang = context.user_data.get("lang", "ru")
     context.user_data.clear()
     context.user_data["lang"] = lang
+    from keyboards import model_keyboard
+    text = t("cancel_msg", lang) + "\n\n" + ("Сначала выбери модель:" if lang == "ru" else "First choose a model:")
     await update.message.reply_text(
-        t("cancel_msg", lang) + "\n\n" + ("Выбери режим:" if lang == "ru" else "Choose a mode:"),
-        reply_markup=mode_keyboard(lang),
+        text,
+        reply_markup=model_keyboard("", lang),
+        parse_mode=ParseMode.HTML,
     )
-    return CHOOSE_MODE
+    return CHOOSE_MODEL_TYPE
 
 
 async def language_command(update, context):
@@ -840,14 +952,16 @@ async def profile_callback(update, context):
             f"💼 <b>Мой профиль</b>\n\n"
             f"👤 ID: <code>{user_id}</code>\n"
             f"💎 Остаток генераций: <b>{limit_str}</b>\n\n"
-            f"<i>Примечание: генерация 4K (высокое качество) стоит 2 кредита.</i>"
+            "🍌 Standard: 1K/2K = 1 кредит, 4K = 2 кредита.\n"
+            "💎 Pro: 1K/2K = 3 кредита, 4K = 6 кредитов."
         )
     else:
         text = (
             f"💼 <b>My Profile</b>\n\n"
             f"👤 ID: <code>{user_id}</code>\n"
             f"💎 Remaining generations: <b>{limit_str}</b>\n\n"
-            f"<i>Note: 4K (high quality) generation costs 2 credits.</i>"
+            "🍌 Standard: 1K/2K = 1 credit, 4K = 2 credits.\n"
+            "💎 Pro: 1K/2K = 3 credits, 4K = 6 credits."
         )
         
     await query.edit_message_text(text, reply_markup=profile_keyboard(lang), parse_mode=ParseMode.HTML)
@@ -866,7 +980,8 @@ async def balance_command(update, context):
             f"💼 <b>Мой профиль</b>\n\n"
             f"👤 ID: <code>{user_id}</code>\n"
             f"💎 Остаток генераций: <b>{limit_str}</b>\n\n"
-            f"<i>Примечание: генерация 4K (высокое качество) стоит 2 кредита.</i>"
+            "🍌 Standard: 1K/2K = 1 кредит, 4K = 2 кредита.\n"
+            "💎 Pro: 1K/2K = 3 кредита, 4K = 6 кредитов."
         )
     else:
         limit_str = "∞ Unlimited" if limit == -1 else str(limit)
@@ -874,10 +989,58 @@ async def balance_command(update, context):
             f"💼 <b>My Profile</b>\n\n"
             f"👤 ID: <code>{user_id}</code>\n"
             f"💎 Remaining generations: <b>{limit_str}</b>\n\n"
-            f"<i>Note: 4K (high quality) generation costs 2 credits.</i>"
+            "🍌 Standard: 1K/2K = 1 credit, 4K = 2 credits.\n"
+            "💎 Pro: 1K/2K = 3 credits, 4K = 6 credits."
         )
         
     await update.message.reply_text(text, reply_markup=profile_keyboard(lang), parse_mode=ParseMode.HTML)
+
+
+async def debug_banana(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Hidden admin-only debug command to inspect current image model and pricing.
+    """
+    from config import ADMIN_ID, MODEL_BANANA_PRO, MODEL_BANANA_2
+    import database
+
+    user_id = update.effective_user.id if update.effective_user else 0
+    if user_id != ADMIN_ID:
+        return
+
+    # Resolve current model from DB or fall back to default
+    db_model = await database.get_setting("IMAGE_MODEL")
+    from config import IMAGE_MODEL as DEFAULT_IMAGE_MODEL
+    current_model = db_model or DEFAULT_IMAGE_MODEL or MODEL_BANANA_PRO
+
+    api_endpoint = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{current_model}:generateContent"
+    )
+    api_mode = "Synchronous / Real-time via generateContent"
+
+    # Simple SKU-based cost estimation for 1K quality
+    if current_model == MODEL_BANANA_PRO or "pro" in current_model:
+        cost = "$0.15 (Pro 2, 1K)"
+    elif current_model == MODEL_BANANA_2 or "flash" in current_model:
+        cost = "$0.045 (Flash, 1K)"
+    else:
+        cost = "N/A (custom model; check console pricing)"
+
+    debug_text = (
+        "🍌 *NanoBanana Debug System*\n"
+        "--------------------------\n"
+        f"✅ *Текущая модель:* `{current_model}`\n"
+        f"🚀 *Режим работы:* `{api_mode}`\n"
+        f"🌐 *API endpoint:* `{api_endpoint}`\n"
+        f"💰 *Себестоимость 1 фото (1K):* `{cost}`\n"
+        "--------------------------\n"
+        "ℹ️ _Данные приблизительны и основаны на мартовском прайсе Google Cloud._"
+    )
+
+    if update.message:
+        await update.message.reply_text(debug_text, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await context.bot.send_message(chat_id=user_id, text=debug_text, parse_mode=ParseMode.MARKDOWN)
 
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -919,11 +1082,23 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.edit_text(response, parse_mode=ParseMode.HTML)
 
 async def buy_menu_callback(update, context):
+    """
+    Open buy menu independently of current conversation state.
+    Always sends a NEW message so it works from /balance, profile, etc.
+    """
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "ru")
-    await query.edit_message_text(t("buy_title", lang), reply_markup=buy_keyboard(lang))
-    return CHOOSE_MODE
+    try:
+        await query.message.reply_text(
+            t("buy_title", lang),
+            reply_markup=buy_keyboard(lang),
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        logger.exception("buy_menu_callback failed: %s", e)
+    # Do not change conversation state — this flow is independent
+    return ConversationHandler.END
 
 async def buy_command(update, context):
     lang = context.user_data.get("lang", "ru")
@@ -1188,7 +1363,13 @@ async def open_model_selection(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "ru")
-    await query.edit_message_text(ui.model_header(context), reply_markup=model_keyboard(lang), parse_mode=ParseMode.HTML)
+    # Используем тот же выбор моделей, что и при старте
+    from keyboards import model_keyboard
+    await query.edit_message_text(
+        ui.model_header(context),
+        reply_markup=model_keyboard("", lang),
+        parse_mode=ParseMode.HTML
+    )
     return CHOOSE_MODEL_TYPE
 
 async def set_model_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1197,38 +1378,27 @@ async def set_model_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     model_id = query.data[len(SET_MODEL_PREFIX):]
     context.user_data["image_model"] = model_id
     
-    # Notify user
+    # Notify user and перейти к выбору режима
     lang = context.user_data.get("lang", "ru")
     from config import MODEL_LABELS_GEN
     mod_name = MODEL_LABELS_GEN.get(model_id, model_id)
     
-    await query.answer(f"Модель изменена на {mod_name}" if lang == "ru" else f"Model changed to {mod_name}")
+    await query.answer(
+        f"Модель изменена на {mod_name}" if lang == "ru" else f"Model changed to {mod_name}"
+    )
     
-    # Return to profile or menu? Let's go to profile to see the change
-    user_id = query.from_user.id
-    user_record = await database.get_user(user_id)
-    limit = user_record['daily_limit'] if user_record else 0
-    
-    limit_str = "∞ Безлимит" if limit == -1 else str(limit)
-    if lang == "ru":
-        text = (
-            f"💼 <b>Мой профиль</b>\n\n"
-            f"👤 ID: <code>{user_id}</code>\n"
-            f"💎 Остаток генераций: <b>{limit_str}</b>\n\n"
-            f"🤖 Текущая модель: <b>{mod_name}</b>\n\n"
-            f"<i>Примечание: генерация 4K (высокое качество) стоит 2 кредита.</i>"
-        )
-    else:
-        limit_str = "∞ Unlimited" if limit == -1 else str(limit)
-        text = (
-            f"💼 <b>My Profile</b>\n\n"
-            f"👤 ID: <code>{user_id}</code>\n"
-            f"💎 Remaining generations: <b>{limit_str}</b>\n\n"
-            f"🤖 Current model: <b>{mod_name}</b>\n\n"
-            f"<i>Note: 4K (high quality) generation costs 2 credits.</i>"
-        )
-    
-    await query.edit_message_text(text, reply_markup=profile_keyboard(lang), parse_mode=ParseMode.HTML)
+    is_admin = await database.is_user_admin(query.from_user.id)
+    legal_tail = (
+        "\n\nТеперь выбери режим: текст, фото или микс."
+        if lang == "ru"
+        else "\n\nNow choose mode: text, photo or mix."
+    )
+    header = ui.welcome_text(lang) + legal_tail
+    await query.edit_message_text(
+        header,
+        reply_markup=mode_keyboard(lang, is_admin=is_admin),
+        parse_mode=ParseMode.HTML,
+    )
     return CHOOSE_MODE
 
 

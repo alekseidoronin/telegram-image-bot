@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import APIKeyCookie
 from urllib.parse import quote
 import database
+import bcrypt
+import mailer
 import os
 import json
 from google import genai
@@ -50,6 +52,10 @@ async def read_oferta(request: Request):
 async def read_privacy(request: Request):
     return templates.TemplateResponse("privacy.html", {"request": request})
 
+@app.get("/cookies", response_class=HTMLResponse)
+async def read_cookies(request: Request):
+    return templates.TemplateResponse("cookies.html", {"request": request})
+
 @app.post("/login")
 async def login_post(response: Response, password: str = Form(...)):
     db_password = await database.get_setting("ADMIN_PASSWORD")
@@ -90,21 +96,62 @@ async def users_list(request: Request, user=Depends(get_current_user)):
         u_dict['remaining'] = u['daily_limit']
         u_dict['is_admin_bool'] = await database.is_user_admin(u['telegram_id'])
         u_dict['type'] = 'TG'
+        # Email из связанного WebAccount, если есть
+        email = ""
+        try:
+            if u_dict.get("web_account_id"):
+                acc = await database.get_web_account_by_id(u_dict["web_account_id"])
+                if acc:
+                    email = acc["email"] or ""
+        except Exception:
+            email = ""
+        u_dict["email"] = email
         users.append(u_dict)
     
     # Web users (active sessions)
     web_users_raw = await database.get_all_web_sessions()
     for w in web_users_raw:
         w_dict = dict(w)
+        token = w_dict['token']
+        web_user = await database.get_web_user(token)
+        email = ""
+        display_name = ""
+        if web_user:
+            wu = dict(web_user)
+            email = wu.get("email") or ""
+            display_name = wu.get("display_name") or ""
+
+        # Attempt to resolve WebAccount by user_id (единная система WebAccounts)
+        web_account_email = ""
+        web_account_name = ""
+        is_web_admin = False
+        try:
+            if w_dict.get("user_id"):
+                acc = await database.get_web_account_by_id(w_dict["user_id"])
+                if acc:
+                    web_account_email = acc["email"] or ""
+                    web_account_name = acc["display_name"] or ""
+                    is_web_admin = bool(acc["is_admin"])
+        except Exception:
+            is_web_admin = False
+
+        # Prefer данные из WebAccounts, затем WebUsers
+        final_email = web_account_email or email
+        final_name = web_account_name or display_name
+
+        full_name = final_name or "Web User"
+        username = final_email or "Web Access"
+
         # For display, we use part of token as tid
         users.append({
-            'telegram_id': w_dict['token'][:8],
-            'token': w_dict['token'],
-            'full_name': "Web User",
-            'username': 'Web Access',
+            'telegram_id': token[:8],
+            'token': token,
+            'full_name': full_name,
+            'username': username,
+            'email': final_email,
             'total_count': '—',
             'remaining': w_dict.get('balance', 0),
-            'is_admin_bool': False,
+            'is_admin_bool': is_web_admin,
             'is_blocked': w_dict.get('is_used', 0) == 1,
             'last_active': w_dict.get('created_at'),
             'type': 'WEB'
@@ -127,6 +174,9 @@ async def create_user(
     if not user:
         return RedirectResponse(url="/login")
 
+    form = await request.form()
+    email = (form.get("email") or "").strip()
+
     # Upsert user with provided data
     import aiosqlite
     async with aiosqlite.connect(database.DB_PATH) as db:
@@ -144,10 +194,14 @@ async def create_user(
         )
         await db.commit()
 
+    # Link to WebAccount by email, if указан
+    if email:
+        await database.link_user_to_web_account(telegram_id, email)
+
     await database.log_audit(
         f"Admin {user}",
         "Create User",
-        f"User {telegram_id} ({username or full_name or 'no name'}) created/updated manually",
+        f"User {telegram_id} ({username or full_name or 'no name'}; email={email or '-'}) created/updated manually",
     )
     return RedirectResponse(
         url="/admin/users?msg=" + quote("Пользователь сохранен."),
@@ -163,6 +217,22 @@ async def user_detail(tid: int, request: Request, user=Depends(get_current_user)
     user_data['total_count'] = await database.get_user_total_count(tid)
     user_data['remaining'] = user_data['daily_limit']
     user_data['is_admin_bool'] = await database.is_user_admin(tid)
+
+    # WebAccount info (email / display name), if linked
+    web_email = ""
+    web_display_name = ""
+    try:
+        if user_data.get("web_account_id"):
+            acc = await database.get_web_account_by_id(user_data["web_account_id"])
+            if acc:
+                web_email = (acc["email"] or "").strip()
+                web_display_name = (acc["display_name"] or "").strip()
+    except Exception:
+        web_email = ""
+        web_display_name = ""
+    user_data["web_email"] = web_email
+    user_data["web_display_name"] = web_display_name
+
     generations = await database.get_user_generations(tid, limit=100)
     total_api_cost = sum(g['api_cost'] for g in generations)
     return templates.TemplateResponse("user_detail.html", {"request": request, "user_data": user_data, "generations": generations, "total_api_cost": total_api_cost, "page": "users"})
@@ -180,6 +250,73 @@ async def add_limit(tid: int, amount: int = Form(...), user=Depends(get_current_
     await database.add_user_limit(tid, amount)
     await database.log_audit(f"Admin {user}", "Add Limit", f"User {tid} added {amount}")
     return RedirectResponse(url=f"/admin/users/{tid}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/admin/users/{tid}/web")
+async def update_web_account(
+    tid: int,
+    request: Request,
+    user=Depends(get_current_user),
+):
+    """Update WebAccount email/display name for this user."""
+    if not user:
+        return RedirectResponse(url="/login")
+
+    form = await request.form()
+    email = (form.get("email") or "").strip()
+    display_name = (form.get("display_name") or "").strip()
+
+    # Link / unlink email
+    await database.link_user_to_web_account(tid, email)
+
+    # If email указан и WebAccount существует — обновим display_name
+    if email:
+        try:
+            # Найдём ещё раз пользователя, чтобы взять web_account_id
+            u = await database.get_user(tid)
+            if u and u.get("web_account_id"):
+                await database.set_web_account_display_name(u["web_account_id"], display_name or email)
+        except Exception:
+            pass
+
+    await database.log_audit(
+        f"Admin {user}",
+        "Update WebAccount",
+        f"User {tid} web_email={email or '-'} display_name={display_name or '-'}",
+    )
+    return RedirectResponse(url=f"/admin/users/{tid}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/admin/users/{tid}/web/reset_password")
+async def reset_web_password(
+    tid: int,
+    user=Depends(get_current_user),
+):
+    """Generate a temporary password for WebAccount and update WebAccounts.password_hash."""
+    if not user:
+        return RedirectResponse(url="/login")
+
+    u = await database.get_user(tid)
+    if not u or not u["web_account_id"]:
+        return RedirectResponse(url=f"/admin/users/{tid}?msg=" + quote("У пользователя нет привязанного Web‑аккаунта."))
+
+    web_account_id = u["web_account_id"]
+    # Простенький временный пароль
+    import secrets
+    temp_password = secrets.token_urlsafe(6)
+    pw_hash = bcrypt.hashpw(temp_password.encode("utf-8"), bcrypt.gensalt())
+    await database.set_web_account_password(web_account_id, pw_hash)
+
+    await database.log_audit(
+        f"Admin {user}",
+        "Reset Web Password",
+        f"User {tid} web_account_id={web_account_id}",
+    )
+
+    return RedirectResponse(
+        url=f"/admin/users/{tid}?temp_pw={quote(temp_password)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 @app.post("/admin/users/{tid}/block")
 async def block_user(tid: int, blocked: str = Form(...), user=Depends(get_current_user)):
@@ -481,22 +618,3 @@ async def view_logs(request: Request, user=Depends(get_current_user)):
             lines = f.readlines()
             log_content = "".join(lines[-200:])
     return templates.TemplateResponse("logs.html", {"request": request, "log_content": log_content, "page": "logs"})
-
-@app.post("/admin/invite/create")
-async def admin_create_invite(hours: int = 48, user=Depends(get_current_user)):
-    if not user: return RedirectResponse(url="/login")
-    import secrets
-    token = secrets.token_urlsafe(24)
-    from datetime import datetime, timedelta, timezone
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=hours)).isoformat()
-    await database.create_invite_token(token, expires_at)
-    # Return JSON for JS to handle
-    from config import ADMIN_URL
-    invite_url = f"{ADMIN_URL.rstrip('/')}/try?token={token}"
-    return {"token": token, "invite_url": invite_url}
-
-@app.get("/admin/invite/list")
-async def admin_list_invites(user=Depends(get_current_user)):
-    if not user: return RedirectResponse(url="/login")
-    tokens_raw = await database.get_all_invite_tokens()
-    return {"tokens": [dict(t) for t in tokens_raw]}

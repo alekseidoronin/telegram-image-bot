@@ -43,6 +43,7 @@ from config import (
     ACTION_SEARCH_ON,
     ACTION_SEARCH_OFF,
     SET_MODEL_PREFIX,
+    CHOOSE_MODEL_TYPE,
 )
 from handlers import (
     start,
@@ -87,6 +88,7 @@ from handlers import (
     payment_done_callback,
     admin_confirm_payment_callback,
     admin_reject_payment_callback,
+    debug_banana,
 )
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -131,6 +133,10 @@ async def run_bot(application):
                     CommandHandler("start", start),
                 ],
             states={
+                CHOOSE_MODEL_TYPE: [
+                    CallbackQueryHandler(set_model_callback, pattern="^" + SET_MODEL_PREFIX),
+                    menu_handler,
+                ],
                 CHOOSE_MODE: [
                     CallbackQueryHandler(
                         mode_chosen,
@@ -141,8 +147,6 @@ async def run_bot(application):
                     CallbackQueryHandler(profile_callback, pattern="^btn_profile$"),
                     CallbackQueryHandler(select_package_callback, pattern="^select_package_"),
                     CallbackQueryHandler(buy_gateway_callback, pattern="^buy_"),
-                    CallbackQueryHandler(admin_model_picker_callback, pattern="^admin_model_picker$"),
-                    CallbackQueryHandler(set_model_callback, pattern="^" + SET_MODEL_PREFIX),
                     menu_handler,
                 ],
                 CHOOSE_RATIO: [
@@ -203,6 +207,8 @@ async def run_bot(application):
             per_message=False,
         )
 
+        # Global handlers (work regardless of conversation state)
+        application.add_handler(CallbackQueryHandler(buy_menu_callback, pattern="^(btn_buy|open_packages)$"))
         application.add_handler(CommandHandler("paysupport", paysupport_command))
         application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
         application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
@@ -215,6 +221,9 @@ async def run_bot(application):
         application.add_handler(CallbackQueryHandler(payment_done_callback, pattern=r"^paid_done:"))
         application.add_handler(CallbackQueryHandler(admin_confirm_payment_callback, pattern=r"^adm_confirm:"))
         application.add_handler(CallbackQueryHandler(admin_reject_payment_callback, pattern=r"^adm_reject:"))
+
+        # Hidden admin-only debug command (not in public menu)
+        application.add_handler(CommandHandler("debug_banana", debug_banana))
 
         application.add_handler(conv_handler)
         application.add_handler(CallbackQueryHandler(set_language_callback, pattern="^setlang_"))

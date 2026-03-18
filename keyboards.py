@@ -154,11 +154,10 @@ def get_gateway_selection_keyboard(package_id, price_rub, stars_price):
 
 def model_keyboard(current_model: str, lang: str = "ru"):
     """Keyboard for selecting image generation model (Nano Banana series)."""
-    from config import SET_MODEL_PREFIX, MODEL_BANANA_PRO, MODEL_BANANA_2, MODEL_BANANA
+    from config import SET_MODEL_PREFIX, MODEL_BANANA_PRO, MODEL_BANANA_2
     models = [
-        (MODEL_BANANA_PRO, "🍌 Nano Banana Pro (Качество)"),
-        (MODEL_BANANA_2,   "⚡ Nano Banana 2 (Скорость)"),
-        (MODEL_BANANA,     "🌿 Nano Banana (Лайт)"),
+        (MODEL_BANANA_2,   "🍌 Nanao Banana (Standard — дешевле)"),
+        (MODEL_BANANA_PRO, "💎 Nanao Banana Pro (детальнее)"),
     ]
     rows = []
     for model_id, label in models:

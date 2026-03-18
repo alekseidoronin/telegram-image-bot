@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Использование файлов cookie - NeuroNanoBanana</title>
+    <style>
+        :root { --primary: #fbbf24; --text: #1f2937; --bg: #f9fafb; --card: #ffffff; }
+        body { font-family: 'Inter', -apple-system, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 40px 20px; color: var(--text); background: var(--bg); }
+        .container { background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h1 { color: #000; font-size: 2rem; margin-bottom: 2rem; border-left: 5px solid var(--primary); padding-left: 15px; }
+        h2 { font-size: 1.25rem; margin-top: 2rem; color: #111; }
+        p, li { margin-bottom: 1rem; text-align: justify; }
+        ul { padding-left: 1.2rem; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        footer { margin-top: 40px; text-align: center; font-size: 0.875rem; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Использование файлов cookie</h1>
+
+        <h2>1. Что такое файлы cookie?</h2>
+        <p>Файлы cookie — это небольшие текстовые файлы, которые сохраняются на вашем устройстве (компьютере, планшете, смартфоне) при посещении нашего сайта. Они позволяют сайту «запоминать» ваши действия и предпочтения (например, согласие с использованием cookie) на определенный период времени.</p>
+
+        <h2>2. Как мы используем файлы cookie</h2>
+        <p>Мы используем файлы cookie для следующих целей:</p>
+        <ul>
+            <li><strong>Строго необходимые cookie</strong>: эти файлы необходимы для правильной работы сайта. Без них некоторые функции сайта могут быть недоступны.</li>
+            <li><strong>Аналитические и эксплуатационные cookie</strong>: они помогают нам понять, как посетители взаимодействуют с сайтом, собирая информацию анонимно. Это позволяет нам улучшать работу сайта (например, с помощью Яндекс.Метрики).</li>
+            <li><strong>Функциональные cookie</strong>: позволяют сайту запоминать выбранные вами параметры (например, закрытие баннера с уведомлением о cookie).</li>
+        </ul>
+
+        <h2>3. Управление файлами cookie</h2>
+        <p>Вы можете управлять файлами cookie и удалять их по своему усмотрению. Подробности см. на сайте
+            <a href="https://www.aboutcookies.org/" target="_blank" rel="noopener noreferrer">aboutcookies.org</a>.
+            Вы можете удалить все файлы cookie, которые уже находятся на вашем устройстве, а также настроить большинство браузеров таким образом, чтобы предотвратить их размещение.
+            Однако в этом случае вам, возможно, придется вручную настраивать некоторые параметры каждый раз при посещении сайта, а некоторые службы и функции могут не работать.
+        </p>
+
+        <h2>4. Изменения в политике использования файлов cookie</h2>
+        <p>Мы оставляем за собой право вносить изменения в настоящую Политику использования файлов cookie в любое время. Изменения вступают в силу с момента их публикации на этой странице.</p>
+
+        <footer>
+            © {{ (now() if false else '') }} NeuroNanoBanana. Использование сайта означает согласие с политикой обработки cookie.
+        </footer>
+    </div>
+</body>
+</html>
+

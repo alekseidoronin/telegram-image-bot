@@ -6,6 +6,12 @@ bot_data.pickle
 *.tmp
 bot_database.db
 bot.log
+.venv/
+app.log
+logs/
+db_backups/
+bot_database_before_rollback_*.db
+config_bak.py
 .gemini/
 .agents/
 .agent/

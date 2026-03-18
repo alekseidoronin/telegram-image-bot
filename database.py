@@ -1,4 +1,5 @@
 import aiosqlite
+import bcrypt
 import asyncio
 import logging
 import os
@@ -23,6 +24,11 @@ async def init_db():
                 last_active TEXT
             )
         ''')
+        # Migration: add web_account_id link to WebAccounts, if ещё нет
+        try:
+            await db.execute('ALTER TABLE users ADD COLUMN web_account_id INTEGER')
+        except Exception:
+            pass
         
         await db.execute('''
             CREATE TABLE IF NOT EXISTS generations (
@@ -95,9 +101,20 @@ async def init_db():
                 ip_address TEXT,
                 user_agent TEXT,
                 generations_left INTEGER DEFAULT 3,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                email TEXT,
+                account_id INTEGER
             )
         ''')
+        # Migration: add email and account_id if table already existed
+        try:
+            await db.execute('ALTER TABLE invite_tokens ADD COLUMN email TEXT')
+        except Exception:
+            pass
+        try:
+            await db.execute('ALTER TABLE invite_tokens ADD COLUMN account_id INTEGER')
+        except Exception:
+            pass
 
         await db.execute('''
             CREATE TABLE IF NOT EXISTS WebSessions (
@@ -109,6 +126,39 @@ async def init_db():
             )
         ''')
 
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS WebAccounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE,
+                password_hash BLOB,
+                display_name TEXT,
+                is_admin INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_login TEXT
+            )
+        ''')
+
+        # One-time migration from legacy WebUsers to WebAccounts (email only)
+        try:
+            await _migrate_webusers_to_webaccounts(db)
+        except Exception as e:
+            logger.exception("WebUsers → WebAccounts migration failed: %s", e)
+
+        # Ensure there is at least one web admin account
+        try:
+            await _ensure_web_admin_account(db)
+        except Exception as e:
+            logger.exception("Failed to ensure web admin account: %s", e)
+
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS WebUsers (
+                token TEXT PRIMARY KEY,
+                email TEXT,
+                display_name TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         await init_pricing(db)
 
         # Migration: Add prompt_embedding if missing
@@ -116,15 +166,6 @@ async def init_db():
             await db.execute('ALTER TABLE generations ADD COLUMN prompt_embedding BLOB')
         except:
             pass
-
-        # Recovery Logic (One-time)
-        if os.path.exists("recovery.sql"):
-            logger.info("Executing recovery.sql...")
-            with open("recovery.sql", "r") as f:
-                sql = f.read()
-                await db.executescript(sql)
-            os.remove("recovery.sql")
-            logger.info("Recovery completed and recovery.sql removed.")
 
         await db.commit()
 
@@ -138,15 +179,20 @@ async def init_pricing(db):
         count = (await cursor.fetchone())[0]
         if count != 3:
             await db.execute('DELETE FROM pricing')
+            # Base Gemini Flash 3.1 pricing (approx):
+            # 1K  ≈ $0.045, 2K ≈ $0.09, 4K ≈ $0.18
             default_pricing = [
-                ('-', '1K', 0.013, 0.19),
-                ('-', '2K', 0.013, 0.19),
-                ('-', '4K', 0.024, 0.38),
+                ('-', '1K', 0.045, 0.19),
+                ('-', '2K', 0.090, 0.29),
+                ('-', '4K', 0.180, 0.49),
             ]
-            await db.executemany('''
+            await db.executemany(
+                '''
                 INSERT INTO pricing (mode, quality, api_cost, sale_price)
                 VALUES (?, ?, ?, ?)
-            ''', default_pricing)
+                ''',
+                default_pricing,
+            )
 
 async def get_setting(key):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -206,16 +252,19 @@ async def is_user_admin(telegram_id):
     user = await get_user(telegram_id)
     return user['is_admin'] == 1 if user else False
 
-async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, success=1, embedding=None):
+async def log_generation(telegram_id, mode, quality, aspect_ratio, prompt, success=1, embedding=None, api_cost: float | None = None):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute(
-            'SELECT api_cost FROM pricing WHERE quality = ?', 
-            (quality,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            cost = row['api_cost'] if row else 0.0
-            
+        # If api_cost is not provided explicitly, fall back to pricing table
+        cost = api_cost
+        if cost is None:
+            async with db.execute(
+                'SELECT api_cost FROM pricing WHERE quality = ?', 
+                (quality,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                cost = row['api_cost'] if row else 0.0
+        
         await db.execute('''
             INSERT INTO generations (telegram_id, mode, quality, aspect_ratio, prompt, prompt_embedding, api_cost, success)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -264,12 +313,33 @@ async def search_similar_generations(telegram_id, query_embedding, limit=5):
 
 async def decrease_user_balance(telegram_id, amount=1):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('UPDATE users SET daily_limit = daily_limit - ? WHERE telegram_id = ? AND daily_limit >= ?', (amount, telegram_id, amount))
+        # -1 означает безлимит — не уменьшаем баланс
+        await db.execute(
+            '''
+            UPDATE users
+            SET daily_limit = CASE
+                WHEN daily_limit = -1 THEN -1
+                ELSE daily_limit - ?
+            END
+            WHERE telegram_id = ? AND (daily_limit >= ? OR daily_limit = -1)
+            ''',
+            (amount, telegram_id, amount),
+        )
         await db.commit()
 
 async def add_user_balance(telegram_id, amount):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('UPDATE users SET daily_limit = daily_limit + ? WHERE telegram_id = ?', (amount, telegram_id))
+        await db.execute(
+            '''
+            UPDATE users
+            SET daily_limit = CASE
+                WHEN daily_limit = -1 THEN -1
+                ELSE daily_limit + ?
+            END
+            WHERE telegram_id = ?
+            ''',
+            (amount, telegram_id),
+        )
         await db.commit()
 
 async def log_payment(telegram_id, stars_amount, generations_added, payment_id):
@@ -292,7 +362,7 @@ async def get_user_total_count(telegram_id):
 async def get_all_users():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT telegram_id, username, full_name, daily_limit, is_blocked, is_admin, language, datetime(created_at, '+3 hours') as created_at, datetime(last_active, '+3 hours') as last_active FROM users ORDER BY last_active DESC") as cursor:
+        async with db.execute("SELECT telegram_id, username, full_name, daily_limit, is_blocked, is_admin, language, web_account_id, datetime(created_at, '+3 hours') as created_at, datetime(last_active, '+3 hours') as last_active FROM users ORDER BY last_active DESC") as cursor:
             return await cursor.fetchall()
 
 async def get_user_generations(telegram_id, limit=50):
@@ -337,6 +407,17 @@ async def update_pricing(pricing_id, api_cost, sale_price):
         ''', (api_cost, sale_price, pricing_id))
         await db.commit()
 
+
+async def get_user_by_web_account(web_account_id: int):
+    """Return user row linked to given WebAccount id, if any."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM users WHERE web_account_id = ? LIMIT 1",
+            (web_account_id,),
+        ) as cursor:
+            return await cursor.fetchone()
+
 async def set_user_limit(telegram_id, limit):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('UPDATE users SET daily_limit = ? WHERE telegram_id = ?', (limit, telegram_id))
@@ -344,7 +425,17 @@ async def set_user_limit(telegram_id, limit):
 
 async def add_user_limit(telegram_id, amount):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('UPDATE users SET daily_limit = daily_limit + ? WHERE telegram_id = ? AND daily_limit >= 0', (amount, telegram_id))
+        await db.execute(
+            '''
+            UPDATE users
+            SET daily_limit = CASE
+                WHEN daily_limit = -1 THEN -1
+                ELSE daily_limit + ?
+            END
+            WHERE telegram_id = ? AND daily_limit >= 0
+            ''',
+            (amount, telegram_id),
+        )
         await db.commit()
 
 async def set_user_block(telegram_id, is_blocked):
@@ -517,13 +608,31 @@ async def restore_transaction(order_id):
 
 # ── Invite Token Management ──────────────────────────────────────────────────
 
-async def create_invite_token(token: str, expires_at: str):
+async def create_invite_token(token: str, expires_at: str, email: str | None = None, account_id: int | None = None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('''
-            INSERT INTO invite_tokens (token, is_used, expires_at, generations_left)
-            VALUES (?, 0, ?, 3)
-        ''', (token, expires_at))
+            INSERT INTO invite_tokens (token, is_used, expires_at, generations_left, email, account_id)
+            VALUES (?, 0, ?, 3, ?, ?)
+        ''', (token, expires_at, (email or "").lower().strip() or None, account_id))
         await db.commit()
+
+
+async def get_invite_token_by_email(email: str):
+    """Return first (unused preferred) invite token for this email."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM invite_tokens WHERE LOWER(TRIM(email)) = ? ORDER BY is_used ASC, created_at DESC LIMIT 1",
+            (email.lower().strip(),),
+        ) as c:
+            return await c.fetchone()
+
+
+async def set_invite_account_id(token: str, account_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE invite_tokens SET account_id = ? WHERE token = ?", (account_id, token))
+        await db.commit()
+
 
 async def get_invite_token(token: str):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -546,19 +655,19 @@ async def activate_invite_token(token: str, fingerprint: str, ip_address: str, u
         ''', (fingerprint, ip_address, user_agent, token))
         await db.commit()
 
-async def claim_invite_generation(token: str) -> bool:
-    """Decrement generations_left by 1. Returns True if successful."""
+async def claim_invite_generation(token: str, amount: int = 1) -> bool:
+    """Decrement generations_left by `amount`. Returns True if successful."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             'SELECT generations_left FROM invite_tokens WHERE token = ?', (token,)
         ) as cursor:
             row = await cursor.fetchone()
-        if not row or row['generations_left'] <= 0:
+        if not row or row['generations_left'] < amount:
             return False
         await db.execute(
-            'UPDATE invite_tokens SET generations_left = generations_left - 1 WHERE token = ?',
-            (token,)
+            'UPDATE invite_tokens SET generations_left = generations_left - ? WHERE token = ?',
+            (amount, token)
         )
         await db.commit()
         return True
@@ -622,6 +731,28 @@ async def get_web_session(token: str):
         async with db.execute('SELECT * FROM WebSessions WHERE token = ? AND is_used = 0', (token,)) as cursor:
             return await cursor.fetchone()
 
+
+async def get_web_session_by_account_id(account_id: int):
+    """Return existing WebSession for this account (user_id = account_id), if any."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            'SELECT * FROM WebSessions WHERE user_id = ? AND is_used = 0 LIMIT 1',
+            (account_id,),
+        ) as cursor:
+            return await cursor.fetchone()
+
+
+async def get_web_session_balance(token: str) -> int:
+    """Return current balance (generations left) for a WebSession token."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            'SELECT balance FROM WebSessions WHERE token = ?',
+            (token,),
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
 async def delete_web_session(token: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('DELETE FROM invite_tokens WHERE token = ?', (token,))
@@ -631,5 +762,220 @@ async def delete_web_session(token: str):
 async def get_all_web_sessions(limit: int = 100):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute('SELECT * FROM WebSessions ORDER BY created_at DESC LIMIT ?', (limit,)) as cursor:
+        async with db.execute(
+            "SELECT token, user_id, balance, is_used, datetime(created_at, '+3 hours') AS created_at "
+            "FROM WebSessions ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ) as cursor:
             return await cursor.fetchall()
+
+
+# ── Web Users (email / display name) ───────────────────────────────────────────
+
+async def upsert_web_user(token: str, email: str):
+    """Create or update a WebUser identified by invite/web token."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            '''
+            INSERT INTO WebUsers (token, email)
+            VALUES (?, ?)
+            ON CONFLICT(token) DO UPDATE SET email = excluded.email
+            ''',
+            (token, email.lower()),
+        )
+        await db.commit()
+
+
+async def get_web_user(token: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT * FROM WebUsers WHERE token = ?', (token,)) as cursor:
+            return await cursor.fetchone()
+
+
+async def set_web_user_display_name(token: str, name: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            'UPDATE WebUsers SET display_name = ? WHERE token = ?',
+            (name.strip(), token),
+        )
+        await db.commit()
+
+
+# ── Web Accounts (email + password) ───────────────────────────────────────────
+
+async def _migrate_webusers_to_webaccounts(db):
+    """
+    One-time migration: take distinct emails from WebUsers and create WebAccounts without passwords.
+    Safe to call multiple times thanks to UNIQUE(email).
+    """
+    # Check if WebUsers table exists
+    try:
+        async with db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='WebUsers'") as c:
+            row = await c.fetchone()
+            if not row:
+                return
+    except Exception:
+        return
+
+    async with db.execute("SELECT DISTINCT LOWER(email) AS email FROM WebUsers WHERE email IS NOT NULL AND email <> ''") as c:
+        rows = await c.fetchall()
+    for r in rows:
+        email = r[0]
+        if not email:
+            continue
+        try:
+            await db.execute(
+                '''
+                INSERT OR IGNORE INTO WebAccounts (email, is_admin)
+                VALUES (?, 0)
+                ''',
+                (email,),
+            )
+        except Exception:
+            # ignore per-row failures, continue
+            continue
+
+
+async def _ensure_web_admin_account(db):
+    """
+    Ensure there is at least one admin WebAccount.
+    Uses a fixed email and bootstrap password for the platform owner.
+    """
+    admin_email = "neonixys@gmail.ru"
+    password = "admin123"
+
+    pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+
+    await db.execute(
+        """
+        INSERT INTO WebAccounts (email, password_hash, display_name, is_admin)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT(email) DO UPDATE SET
+            password_hash = excluded.password_hash,
+            display_name  = excluded.display_name,
+            is_admin      = 1
+        """,
+        (admin_email.lower(), pw_hash, "Admin"),
+    )
+    logger.info("Ensured WebAccount admin with email %s", admin_email)
+
+
+async def get_web_account_by_email(email: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM WebAccounts WHERE email = ? LIMIT 1",
+            (email.lower(),),
+        ) as c:
+            return await c.fetchone()
+
+
+async def create_web_account(email: str, password: str, is_admin: bool = False, display_name: str = ""):
+    pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            '''
+            INSERT INTO WebAccounts (email, password_hash, display_name, is_admin)
+            VALUES (?, ?, ?, ?)
+            ''',
+            (email.lower(), pw_hash, display_name or "", 1 if is_admin else 0),
+        )
+        await db.commit()
+
+
+async def get_web_account_by_id(account_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM WebAccounts WHERE id = ? LIMIT 1",
+            (account_id,),
+        ) as c:
+            return await c.fetchone()
+
+
+async def link_user_to_web_account(telegram_id: int, email: str | None):
+    """
+    Link Telegram user to WebAccount by email.
+    If email is empty, web_account_id will be cleared.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        if not email:
+            await db.execute(
+                "UPDATE users SET web_account_id = NULL WHERE telegram_id = ?",
+                (telegram_id,),
+            )
+            await db.commit()
+            return
+
+        normalized = email.lower().strip()
+        if "@" not in normalized:
+            return
+
+        # Find or create WebAccount for this email
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM WebAccounts WHERE email = ? LIMIT 1",
+            (normalized,),
+        ) as c:
+            acc = await c.fetchone()
+
+        if not acc:
+            await db.execute(
+                "INSERT INTO WebAccounts (email, display_name, is_admin) VALUES (?, ?, 0)",
+                (normalized, normalized),
+            )
+            await db.commit()
+            async with db.execute(
+                "SELECT * FROM WebAccounts WHERE email = ? LIMIT 1",
+                (normalized,),
+            ) as c:
+                acc = await c.fetchone()
+
+        if not acc:
+            return
+
+        await db.execute(
+            "UPDATE users SET web_account_id = ? WHERE telegram_id = ?",
+            (acc["id"], telegram_id),
+        )
+        await db.commit()
+
+
+async def get_or_create_web_account_for_invite(email: str):
+    """
+    Return WebAccount for this email. If none exists, create one (no password).
+    Returns (row, created: bool).
+    """
+    email = (email or "").lower().strip()
+    if not email or "@" not in email:
+        return None, False
+    acc = await get_web_account_by_email(email)
+    if acc:
+        return acc, False
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO WebAccounts (email, display_name, is_admin) VALUES (?, '', 0)",
+            (email,),
+        )
+        await db.commit()
+    acc = await get_web_account_by_email(email)
+    return acc, True
+
+
+async def set_web_account_password(account_id: int, new_password_hash: bytes):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE WebAccounts SET password_hash = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?",
+            (new_password_hash, account_id),
+        )
+        await db.commit()
+
+
+async def set_web_account_display_name(account_id: int, display_name: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE WebAccounts SET display_name = ? WHERE id = ?",
+            (display_name.strip(), account_id),
+        )
+        await db.commit()

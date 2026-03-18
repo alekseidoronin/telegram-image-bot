@@ -6,6 +6,19 @@
 <div class="mb-3">
     <a href="/admin/users" class="btn btn-outline-secondary">&larr; Вернуться к списку</a>
 </div>
+{% if request.query_params.get('msg') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('msg') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if request.query_params.get('temp_pw') %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    Новый временный пароль для Web‑аккаунта: <code>{{ request.query_params.get('temp_pw') }}</code><br>
+    Сообщите его пользователю и рекомендуйте сменить пароль в веб‑профиле.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -13,9 +26,19 @@
         <p class="text-muted mb-0">
             Telegram ID: <code>{{ user_data.telegram_id }}</code> | @{{ user_data.username or '—' }}
         </p>
-        <p class="text-muted mb-0">
+        <p class="text-muted mb-1">
             Chat ID: <code>{{ user_data.telegram_id }}</code>
         </p>
+        <div class="d-flex gap-2 mt-1">
+            {% if user_data.web_email %}
+            <span class="badge bg-success">🌐 Web‑доступ</span>
+            {% else %}
+            <span class="badge bg-secondary">🌐 Web‑доступ: нет</span>
+            {% endif %}
+            {% if user_data.remaining == -1 %}
+            <span class="badge bg-info text-dark">♾ Безлимитно</span>
+            {% endif %}
+        </div>
     </div>
     <form action="/admin/users/{{ user_data.telegram_id }}/delete" method="post"
         onsubmit="return confirm('Удалить пользователя и ВСЕ его данные? Это необратимо.')">
@@ -42,6 +65,9 @@
                             class="form-control form-control-sm" min="-1">
                         <button type="submit" class="btn btn-sm btn-light">OK</button>
                     </div>
+                    <small class="text-light-50 d-block mt-1">
+                        -1 = ♾ безлимит (TG + Web).
+                    </small>
                 </form>
             </div>
         </div>
@@ -71,8 +97,50 @@
                         {{ "Снять права" if user_data.is_admin_bool else "Дать админа" }}
                     </button>
                 </form>
+                <small class="text-light-50 d-block mt-2">
+                    Админ = полный доступ и фактический безлимит генераций в Telegram и Web.
+                </small>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Web Account -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>🌐 Web‑аккаунт</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-10">
+                <form action="/admin/users/{{ user_data.telegram_id }}/web" method="post" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Email (Web)</label>
+                        <input type="email" name="email" class="form-control" placeholder="user@example.com"
+                               value="{{ user_data.web_email or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Имя в веб‑кабинете</label>
+                        <input type="text" name="display_name" class="form-control" placeholder="Имя, которое видит пользователь"
+                               value="{{ user_data.web_display_name or '' }}">
+                    </div>
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary">Сохранить Web‑аккаунт</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <form action="/admin/users/{{ user_data.telegram_id }}/web/reset_password" method="post" class="w-100">
+                    <button type="submit" class="btn btn-outline-danger w-100"
+                            onclick="return confirm('Сгенерировать новый временный пароль для веб‑аккаунта?');">
+                        🔐 Сбросить пароль
+                    </button>
+                </form>
+            </div>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+            Если указать email, будет создан или привязан Web‑аккаунт с этим адресом. Оставьте поле пустым, чтобы отвязать доступ.
+        </p>
     </div>
 </div>
 

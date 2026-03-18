@@ -98,13 +98,17 @@
     <div class="col-md-12">
         <div class="card p-3">
             <h5>🔗 Одноразовые ссылки (Web-доступ)</h5>
-            <p class="text-muted small mt-1 mb-3">Генерируй персональные ссылки на сайт. Каждая даёт 3 бесплатные генерации.</p>
+            <p class="text-muted small mt-1 mb-3">Генерируй персональные ссылки на сайт. Каждая даёт 3 бесплатные генерации и отправляется на указанный Email.</p>
             <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label class="form-label">Email пользователя:</label>
+                    <input type="email" id="inviteEmail" class="form-control" placeholder="user@example.com" />
+                </div>
+                <div class="col-md-3">
                     <label class="form-label">Срок действия (часов):</label>
                     <input type="number" id="inviteHours" class="form-control" value="48" min="1" max="720" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <button class="btn btn-primary w-100" id="btnCreateInvite" onclick="createInvite()">➕ Создать ссылку</button>
                 </div>
             </div>
@@ -133,15 +137,32 @@
 
 <script>
 async function createInvite() {
+    const email = document.getElementById('inviteEmail').value.trim();
+    if (!email || !email.includes('@')) {
+        alert('Введите корректный email.');
+        return;
+    }
     const hours = document.getElementById('inviteHours').value || 48;
     const btn = document.getElementById('btnCreateInvite');
     btn.disabled = true; btn.textContent = 'Создаю...';
     try {
-        const resp = await fetch(`/admin/invite/create?hours=${hours}`, { method: 'POST' });
+        const formData = new FormData();
+        formData.append('hours', hours);
+        formData.append('email', email);
+
+        const resp = await fetch(`/admin/invite/create`, {
+            method: 'POST',
+            body: formData
+        });
         const data = await resp.json();
         if (data.invite_url) {
             document.getElementById('inviteUrl').textContent = data.invite_url;
             document.getElementById('inviteResult').classList.remove('d-none');
+            if (data.sent) {
+                alert('Ссылка отправлена на ' + (data.email || email));
+            } else {
+                alert('Ссылка создана, но отправка email не удалась. Скопируйте и отправьте вручную.');
+            }
         } else {
             alert('Ошибка: ' + (data.error || JSON.stringify(data)));
         }

@@ -35,8 +35,27 @@ CHANNEL_NAME = os.getenv("CHANNEL_NAME", "Doronin_Al")
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
+# Default models (can be overridden in DB settings)
 IMAGE_MODEL = ""
 TEXT_MODEL = ""
+
+# Canonical model IDs for image generation
+STANDARD_MODEL_ID = "gemini-3.1-flash-image-preview"     # Nano Banana 2 Flash
+PRO_MODEL_ID      = "gemini-3-pro-image-preview"         # Nano Banana Pro 2
+
+# Real API costs (USD) per generation, used for margin / analytics
+STANDARD_COSTS = {
+    "1K": 0.045,
+    "2K": 0.067,
+    "4K": 0.101,
+}
+
+PRO_COSTS = {
+    "1K": 0.15,
+    "2K": 0.15,
+    "4K": 0.30,
+}
+
 API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
     + IMAGE_MODEL
@@ -119,9 +138,9 @@ MODEL_BANANA_2   = "gemini-3.1-flash-image-preview"
 MODEL_BANANA     = "gemini-2.5-flash-image"
 
 MODEL_LABELS_GEN = {
-    MODEL_BANANA_PRO: "🍌 Nano Banana Pro",
-    MODEL_BANANA_2:   "⚡ Nano Banana 2",
-    MODEL_BANANA:     "🌿 Nano Banana",
+    MODEL_BANANA_2:   "🍌 Nanao Banana (Standard)",
+    MODEL_BANANA_PRO: "💎 Nanao Banana Pro",
+    MODEL_BANANA:     "🌿 Nanao Banana (Legacy)",
 }
 
 CHOOSE_MODEL_TYPE = 10  # extra conversation state for model picker

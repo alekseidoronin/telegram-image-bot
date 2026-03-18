@@ -23,7 +23,8 @@
                     <th>Качество</th>
                     <th>Себестоимость API ($)</th>
                     <th>Цена продажи ($)</th>
-                    <th>Маржа ($)</th>
+                    <th>Вес (кредиты)</th>
+                    <th>Маржа за генерацию</th>
                     <th>Обновлено</th>
                     <th></th>
                 </tr>
@@ -32,22 +33,35 @@
                 {% for p in pricing %}
                 <tr>
                     <td>
-                        <span class="badge bg-secondary">{{ p.mode }}</span>
+                        <span class="badge bg-secondary">{{ p.mode or '-' }}</span>
                     </td>
                     <td><strong>{{ p.quality }}</strong></td>
                     <form action="/admin/pricing/{{ p.id }}" method="post">
                         <td>
                             <input type="number" step="0.001" name="api_cost" value="{{ p.api_cost }}"
-                                class="form-control form-control-sm" style="width: 100px;" min="0">
+                                class="form-control form-control-sm" style="width: 110px;" min="0">
                         </td>
                         <td>
                             <input type="number" step="0.001" name="sale_price" value="{{ p.sale_price }}"
-                                class="form-control form-control-sm" style="width: 100px;" min="0">
+                                class="form-control form-control-sm" style="width: 110px;" min="0">
+                        </td>
+                        <td>
+                            {% if p.quality in ['1K','2K'] %}
+                                {% set weight = 1 %}
+                            {% else %}
+                                {% set weight = 2 %}
+                            {% endif %}
+                            <span class="fw-semibold">{{ weight }}</span>
                         </td>
                         <td>
                             {% set margin = p.sale_price - p.api_cost %}
+                            {% if p.sale_price and p.sale_price != 0 %}
+                                {% set margin_pct = (margin / p.sale_price) * 100 %}
+                            {% else %}
+                                {% set margin_pct = 0 %}
+                            {% endif %}
                             <span class="{% if margin > 0 %}text-success{% elif margin < 0 %}text-danger{% else %}text-muted{% endif %} fw-bold">
-                                ${{ "%.3f"|format(margin) }}
+                                ${{ "%.3f"|format(margin) }} ({{ "%.1f"|format(margin_pct) }}%)
                             </span>
                         </td>
                         <td><small class="text-muted">{{ p.updated_at[:16].replace('T', ' ') if p.updated_at else '—' }}</small></td>

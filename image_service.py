@@ -19,9 +19,46 @@ import requests as http_requests
 from google import genai
 from PIL import Image
 
-from config import API_URL, TEXT_MODEL, MAX_RETRIES
+from config import (
+    API_URL,
+    TEXT_MODEL,
+    MAX_RETRIES,
+    STANDARD_MODEL_ID,
+    PRO_MODEL_ID,
+    STANDARD_COSTS,
+    PRO_COSTS,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def get_deduction_amount(model_id: str, quality: str) -> int:
+    """
+    Unified credit logic.
+
+    - Standard models (Flash) use base weight 1.
+    - Pro models use base weight 3.
+    - 4K всегда удваивает базовый вес.
+    - 1K и 2K стоят одинаково по кредитам.
+    """
+    model = (model_id or "").lower()
+    is_pro = "pro" in model
+    base_weight = 3 if is_pro else 1
+    if quality == "4K":
+        return base_weight * 2
+    return base_weight
+
+
+def get_real_api_cost(model_id: str, quality: str) -> float:
+    """
+    Return real API cost in USD for given model / quality.
+    Falls back to 1K tier if quality is unknown.
+    """
+    model = (model_id or "").lower()
+    is_pro = "pro" in model
+    table = PRO_COSTS if is_pro else STANDARD_COSTS
+    q = quality if quality in table else "1K"
+    return float(table.get(q, table["1K"]))
 
 
 def _detect_mime(image_bytes):
@@ -110,6 +147,14 @@ def _call_api_sync(api_key, parts, aspect_ratio="1:1", quality="1K", search=Fals
                 continue
             return []
 
+        # Success — basic usage logging for cost control
+        try:
+            model_version = data.get("modelVersion") or data.get("model") or model_name
+            usage = data.get("usageMetadata") or data.get("usage") or {}
+            logger.info("Image generation usage — model=%s usage=%s", model_version, usage)
+        except Exception:
+            logger.exception("Failed to log image usage metadata")
+
         # Success — extract images
         images = []
         candidates = data.get("candidates", [])
@@ -181,14 +226,17 @@ async def enhance_prompt(api_key=None, prompt="", text_model=None):
         endpoint_url = f"https://generativelanguage.googleapis.com/v1beta/models/{actual_model}:generateContent"
         payload = {
             "contents": [{
-                "parts": [{"text": 
-                    "You are an expert prompt engineer for AI image generation. "
-                    "Enhance the following prompt to produce better, more vivid images. "
-                    "Use narrative style: describe the scene, lighting, atmosphere, "
-                    "camera angle, artistic style. "
-                    "Keep it concise (max 3 sentences). "
-                    "Return ONLY the enhanced prompt. No quotes, no explanation.\n\n"
-                    "Original: " + prompt
+                "parts": [{
+                    "text":
+                        "You are an assistant that gently refines prompts for AI image generation.\n"
+                        "Your main goal is to KEEP the user's original idea, style and constraints exactly the same.\n"
+                        "Do NOT change the genre, main subject, composition, or art style unless the user explicitly asks for it.\n"
+                        "You may: slightly clarify details (lighting, atmosphere, camera angle) and fix grammar.\n"
+                        "You must NOT remove important objects, people, brands, text, or restrictions from the original prompt.\n"
+                        "Keep the result short (1–2 sentences).\n"
+                        "Return ONLY the improved prompt text, without quotes or explanations.\n\n"
+                        "Original prompt:\n"
+                        + prompt
                 }]
             }]
         }
